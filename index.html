@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SHARK" />
-  <script src="config.js"></script>
+  <script src="config.js?v=4"></script>
   <style>
 :root{--navy:#0b1424;--teal:#0a9c88;--teal2:#087c96;--paper:#f4f3ef;--surface:#fff;--surface2:#f7f8fa;--input:#fbfcfd;--ink:#172033;--muted:#68768a;--line:#dde3ea;--good-bg:#e6f6ef;--good:#08765d;--warn-bg:#fff1ef;--warn:#b23b3b;--hold-bg:#f3f5f8;--radius:16px;--shadow:0 8px 28px rgba(16,27,45,.08)}
 html[data-theme="dark"]{--paper:#08101c;--surface:#101b2c;--surface2:#142236;--input:#0c1727;--ink:#eaf1f8;--muted:#93a3b6;--line:#26364b;--good-bg:#12362e;--good:#7fe3c4;--warn-bg:#3a2026;--warn:#ffa79e;--hold-bg:#172639;--shadow:0 10px 30px rgba(0,0,0,.3);color-scheme:dark}
@@ -1744,6 +1744,8 @@ async function firebaseBackend(cfg) {
       await commit(ops.map(o => ({ path: ['users', uid, o.kind, o.id], data: o.json == null ? null : { json: o.json, updatedAt: F.serverTimestamp() } })));
     },
     // --- 使用權限 ---
+    // 以伺服器規則為準：只有管理員能列出 access 名單（離線時一律視為否）
+    async probeAdmin() { try { await F.getDocsFromServer(F.query(F.collection(db, 'access'), F.limit(1))); return true } catch { return false } },
     watchAccess(uid, cb) {
       return F.onSnapshot(F.doc(db, 'access', uid), { includeMetadataChanges: true },
         d => cb(d.exists() ? accessDoc(d) : null, { fromCache: d.metadata.fromCache }), err => cb(null, { error: err }));
@@ -1865,7 +1867,7 @@ function startApp() {
   if (!metaJ) delete saved.version;
   for (const kind of KINDS) for (const [id, j] of Object.entries(S.remote[kind])) S.synced.set(pathOf(kind, id), j);
   S.remote = null;
-  if (isAdminUser(S.user) && backend.admin) SYNC.admin = { ...backend.admin, me: S.uid };
+  if (S.isAdmin && backend.admin) SYNC.admin = { ...backend.admin, me: S.uid };
   S.app = window.SHARK_START(saved, SYNC);
   hideGate(); setStatus();
   if (isEmpty) setTimeout(() => S.app.welcomeEmpty(), 400);
@@ -1956,9 +1958,12 @@ async function main() {
     q('#accountName').textContent = user.name || user.email;
     q('#accountName').title = user.email;
     q('#account').hidden = false;
-    if (isAdminUser(user)) { enterApp(); return }
+    if (isAdminUser(user)) { S.isAdmin = true; enterApp(); return }
     showGate('loading', '確認使用權限…');
-    S.accessUnsub = backend.watchAccess(user.uid, onAccess);
+    Promise.resolve(backend.probeAdmin ? backend.probeAdmin() : false).then(ok => {
+      if (ok) { S.isAdmin = true; enterApp(); return }
+      S.accessUnsub = backend.watchAccess(user.uid, onAccess);
+    });
   });
 
   q('#signOutBtn').onclick = async () => { if (confirm('登出這個帳號？（未同步的變更會先送出）')) signOut() };
