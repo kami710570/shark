@@ -262,6 +262,10 @@ body.touring .float-timer{display:none}
   .lib-filter{grid-template-columns:1fr 1fr}.lib-filter input{grid-column:span 2}
   .mem{flex-direction:column;align-items:flex-start}.mem-btns{justify-content:flex-start}
 }
+.src{margin-top:8px;line-height:1.5}.src a{color:var(--teal);text-decoration:underline}
+.chip-btn.danger{color:var(--warn);margin-left:auto}.warn-text{color:var(--warn)}
+.add-ex{display:block;width:100%;margin:12px 0;border-style:dashed;padding:12px}
+@media (max-width:560px){.ex-actions{gap:5px}.ex-actions .chip-btn{padding:4px 9px}}
 
   </style>
 </head>
@@ -314,6 +318,7 @@ body.touring .float-timer{display:none}
 
       <div class="day-head"><div><h2 id="dayTitle"></h2><div id="dayNote" class="muted sm"></div></div><div class="progress"><i id="progressBar"></i></div></div>
       <div id="exerciseList" class="ex-list"></div>
+      <button id="addExercise" class="btn btn-light add-ex">＋ 加入動作</button>
       <div class="card pad note-card"><textarea id="sessionNotes" class="field" placeholder="備註（選填）"></textarea><label class="check"><input id="painFlag" type="checkbox"> 有疼痛或不適（下次不加重）</label></div>
       <div class="savebar"><div><b id="progressText">0/0</b> <span class="muted sm">組完成</span></div><button id="saveSession" class="btn btn-primary">完成並保存</button></div>
     </section>
@@ -371,7 +376,7 @@ body.touring .float-timer{display:none}
           <li><b>加重</b>同一重量 2 組做到次數上限 → 下次加一級（啞鈴 +2 kg、Cable +1 格、槓鈴 +2.5 kg，可在器材調整）。</li>
           <li><b>快速</b>只要 1 組做到上限還有餘力（還能再做 1 下以上，或直接超過上限）也算達標。<select id="fastUp" class="field sm-field"><option value="on">開啟</option><option value="off">關閉</option></select></li>
           <li><b>維持</b>還沒達標就維持重量，先把次數做滿。</li>
-          <li><b>降重</b>連續 2 次，主要重量最好的一組都低於次數下限 → 降一級。</li>
+          <li><b>降重</b>連續 2 次，主要重量最好的一組都低於次數下限 → 降一級（已是最輕就維持）。</li>
           <li><b>升階</b>到器材上限又達標 → 換成較難的動作，或提高次數區間。</li>
           <li><b>不適</b>勾選「疼痛或不適」的那次，不會建議加重。</li>
           <li><b>自重</b>同一條彈力帶 2 組達上限 → 換較輕的帶；自重達標 → 負重或升階。</li>
@@ -390,7 +395,7 @@ body.touring .float-timer{display:none}
   window.SHARK_START = function (SAVED, SYNC) {
 // ===== 01 · 基本資料：肌群、器材、動作庫、預設課表 =====
 const SCHEMA = 11;
-const MUSCLE_NAMES = ['胸', '背', '肩', '二頭', '三頭', '股四頭', '腿後', '臀', '小腿', '核心'];
+const MUSCLE_NAMES = ['胸', '背', '前肩', '側肩', '後肩', '二頭', '三頭', '股四頭', '腿後', '臀', '小腿', '核心'];
 
 // 器材類型 → 記錄方式
 // db: 啞鈴每手 kg｜db1: 單顆啞鈴 kg｜stack: 配重格數｜plate: 槓鈴總重 kg｜bw: 自重｜cardio: 有氧
@@ -418,123 +423,156 @@ const m = s => Object.fromEntries(s.split(' ').filter(Boolean).map(x => { const 
 // 選項：kind（覆寫記錄方式）、side（每側次數）、next（升階動作）、start（無紀錄起點）
 const LIB_ROWS = [
   // --- 啞鈴：上肢 ---
-  ['bench', '平板啞鈴臥推', 'db', '胸1 三頭.5 肩.5', '胸大肌、三頭、前三角', '平椅；啞鈴置於大腿後再帶到起始位。', '肩胛穩定貼椅，啞鈴下放至胸側；以前臂接近垂直的路徑推回。', '折腕、肘外開過度、為了對稱硬把握法轉平。', { start: 10, next: ['bb_bench', 'db_pause_bench'] }],
-  ['db_pause_bench', '暫停啞鈴臥推', 'db', '胸1 三頭.5 肩.5', '胸大肌、底部控制', '同平板臥推。', '下放到底停 1–2 秒，不放鬆再推起。', '停頓時肩胛鬆掉、彈起。', { start: 10 }],
-  ['incline', '低上斜啞鈴臥推', 'db', '胸1 三頭.5 肩.5', '上胸、三頭、前三角', '椅背 15–30°；啞鈴由腿部帶起。', '肩胛穩定，以自然半中立角度下放與推起。', '椅背過高變成肩推、折腕、肘外開過度。', { start: 8, next: ['bb_incline', 'smith_incline'] }],
-  ['db_fly', '啞鈴飛鳥', 'db', '胸1', '胸大肌', '平椅或低上斜椅。', '手肘微彎固定，雙臂畫弧下放到胸側伸展，再收回。', '變成推舉、下放過深。', { start: 6 }],
-  ['ohp', '坐姿啞鈴肩推', 'db', '肩1 三頭.5', '三角肌、三頭', '椅背接近直立；腳掌踩穩。', '採自然握角，由肩側向上推；停在無卡點的頂端。', '過度拱腰、聳肩、強迫完全正握。', { start: 6, next: ['bb_ohp'] }],
-  ['db_lateral', '啞鈴側平舉', 'db', '肩1', '三角肌中束', '站姿或坐姿，啞鈴在身側。', '在肩胛平面抬到肩高，慢慢下降。', '甩動、聳肩。', { start: 4 }],
-  ['db_reardelt', '俯身啞鈴反向飛鳥', 'db', '肩1 背.5', '後三角、中背', '髖鉸鏈前傾或胸靠上斜椅。', '手肘微彎，向兩側打開到肩高。', '聳肩、用慣性甩。', { start: 4 }],
-  ['one_row', '手撐椅單臂啞鈴划船', 'db', '背1 二頭.5 肩.5', '背闊肌、中背、抗旋轉', '一手一膝或一手支撐椅，骨盆保持水平。', '由肩胛啟動，把啞鈴拉向同側髖部。', '旋轉軀幹、聳肩、啞鈴直上直下。', { start: 12, side: true, next: ['bb_row'] }],
-  ['db_pullover', '啞鈴仰臥拉舉', 'db', '背1 胸.5', '背闊肌、胸', '橫躺或直躺平椅，雙手捧一顆啞鈴。', '手肘微彎，啞鈴往頭後下放，再拉回胸口上方。', '腰部過度拱起、手肘角度變化。', { kind: 'db1', start: 10 }],
-  ['curl', '旋後啞鈴彎舉', 'db', '二頭1', '肱二頭肌、肱肌', '雙手持啞鈴，起始可半中立；肩膀放鬆、上臂靠近軀幹。', '彎肘時逐漸把掌心轉向上，頂端收縮後控制旋回與下降。', '軀幹擺動、肩膀前頂、用手腕彎曲代替旋後。', { start: 6 }],
-  ['hammer', '槌式彎舉', 'db', '二頭1', '肱肌、肱橈肌、肱二頭', '手掌相對，肩膀放鬆。', '手肘彎曲時允許前臂走自然路徑；控制下降。', '軀幹擺動、肩膀前頂、強迫完全筆直。', { start: 6 }],
-  ['db_ohext', '啞鈴過頭三頭伸展', 'db', '三頭1', '肱三頭肌長頭', '坐姿，雙手捧一顆啞鈴舉過頭。', '上臂固定，啞鈴往頭後下放再伸直。', '手肘外開、腰部拱起。', { kind: 'db1', start: 10 }],
-  ['db_shrug', '啞鈴聳肩', 'db', '背.5', '上斜方肌', '雙手持啞鈴站直。', '肩膀直上提起，停頓後慢放。', '轉肩、用腿彈。', { start: 16 }],
+  ['bench', '平板啞鈴臥推', 'db', '', '胸大肌、三頭、前三角', '平椅；啞鈴置於大腿後再帶到起始位。', '肩胛穩定貼椅，啞鈴下放至胸側；以前臂接近垂直的路徑推回。', '折腕、肘外開過度、為了對稱硬把握法轉平。', { sl: 'dumbbell-chest-press|Chest FrontDelt|Triceps', start: 10, next: ['bb_bench', 'db_pause_bench'] }],
+  ['db_pause_bench', '暫停啞鈴臥推', 'db', '', '胸大肌、底部控制', '同平板臥推。', '下放到底停 1–2 秒，不放鬆再推起。', '停頓時肩胛鬆掉、彈起。', { sl: '~dumbbell-chest-press|Chest FrontDelt|Triceps', start: 10 }],
+  ['incline', '低上斜啞鈴臥推', 'db', '', '上胸、三頭、前三角', '椅背 15–30°；啞鈴由腿部帶起。', '肩胛穩定，以自然半中立角度下放與推起。', '椅背過高變成肩推、折腕、肘外開過度。', { sl: '~dumbbell-incline-press|Chest FrontDelt|Triceps', start: 8, next: ['bb_incline', 'smith_incline'] }],
+  ['db_fly', '啞鈴飛鳥', 'db', '', '胸大肌', '平椅或低上斜椅。', '手肘微彎固定，雙臂畫弧下放到胸側伸展，再收回。', '變成推舉、下放過深。', { sl: 'dumbbell-chest-fly|Chest|FrontDelt', start: 6 }],
+  ['ohp', '坐姿啞鈴肩推', 'db', '', '三角肌、三頭', '椅背接近直立；腳掌踩穩。', '採自然握角，由肩側向上推；停在無卡點的頂端。', '過度拱腰、聳肩、強迫完全正握。', { sl: 'seated-dumbbell-shoulder-press|FrontDelt|Triceps LatDelt', start: 6, next: ['bb_ohp'] }],
+  ['db_lateral', '啞鈴側平舉', 'db', '', '三角肌中束', '站姿或坐姿，啞鈴在身側。', '在肩胛平面抬到肩高，慢慢下降。', '甩動、聳肩。', { sl: 'dumbbell-lateral-raise|LatDelt|FrontDelt', start: 4 }],
+  ['db_reardelt', '俯身啞鈴反向飛鳥', 'db', '', '後三角、中背', '髖鉸鏈前傾或胸靠上斜椅。', '手肘微彎，向兩側打開到肩高。', '聳肩、用慣性甩。', { sl: 'reverse-dumbbell-flyes|RearDelt RotCuff|Traps', start: 4 }],
+  ['one_row', '手撐椅單臂啞鈴划船', 'db', '', '背闊肌、中背、抗旋轉', '一手一膝或一手支撐椅，骨盆保持水平。', '由肩胛啟動，把啞鈴拉向同側髖部。', '旋轉軀幹、聳肩、啞鈴直上直下。', { sl: 'dumbbell-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 12, side: true, next: ['bb_row'] }],
+  ['db_pullover', '啞鈴仰臥拉舉', 'db', '', '背闊肌、胸', '橫躺或直躺平椅，雙手捧一顆啞鈴。', '手肘微彎，啞鈴往頭後下放，再拉回胸口上方。', '腰部過度拱起、手肘角度變化。', { sl: 'dumbbell-pullover|Chest|Lats', kind: 'db1', start: 10 }],
+  ['curl', '旋後啞鈴彎舉', 'db', '', '肱二頭肌、肱肌', '雙手持啞鈴，起始可半中立；肩膀放鬆、上臂靠近軀幹。', '彎肘時逐漸把掌心轉向上，頂端收縮後控制旋回與下降。', '軀幹擺動、肩膀前頂、用手腕彎曲代替旋後。', { sl: 'dumbbell-curl|Biceps|Forearms', start: 6 }],
+  ['hammer', '槌式彎舉', 'db', '', '肱肌、肱橈肌、肱二頭', '手掌相對，肩膀放鬆。', '手肘彎曲時允許前臂走自然路徑；控制下降。', '軀幹擺動、肩膀前頂、強迫完全筆直。', { sl: 'hammer-curl|Biceps|Forearms', start: 6 }],
+  ['db_ohext', '啞鈴過頭三頭伸展', 'db', '', '肱三頭肌長頭', '坐姿，雙手捧一顆啞鈴舉過頭。', '上臂固定，啞鈴往頭後下放再伸直。', '手肘外開、腰部拱起。', { sl: '~dumbbell-standing-triceps-extension|Triceps|', kind: 'db1', start: 10 }],
+  ['db_shrug', '啞鈴聳肩', 'db', '', '上斜方肌', '雙手持啞鈴站直。', '肩膀直上提起，停頓後慢放。', '轉肩、用腿彈。', { sl: 'dumbbell-shrug|Traps|Forearms', start: 16 }],
   // --- 啞鈴：下肢 ---
-  ['rdl', '雙啞鈴 RDL', 'db', '腿後1 臀1', '腿後肌、臀大肌、豎脊肌', '雙腳髖寬，啞鈴在大腿前側。', '膝微彎固定，髖向後推；啞鈴貼腿下降至張力終點。', '變成深蹲、啞鈴離腿、為追深度而圓背。', { start: 14, next: ['bstance', 'sl_rdl', 'bb_rdl'] }],
-  ['bstance', 'B-stance 啞鈴 RDL', 'db', '腿後1 臀1', '主腳腿後肌、臀肌', '後腳退半步，以腳尖輕點地作支架。', '主腳髖向後推，骨盆保持正向；由主腳伸髖。', '後腳推地、骨盆旋轉。', { start: 10, side: true, next: ['sl_rdl'] }],
-  ['sl_rdl', '單腳啞鈴 RDL', 'db', '腿後1 臀1 核心.5', '腿後肌、臀肌、單腳平衡', '單腳站立，可單手扶固定物。', '髖向後推、後腳往後延伸，軀幹與後腳成一直線。', '骨盆打開、膝蓋鎖死、失去平衡硬撐。', { start: 8, side: true }],
-  ['rev_lunge', '反向弓箭步', 'db', '股四頭1 臀1', '臀肌、股四頭、單腿穩定', '站穩後向後跨步；必要時輕扶固定物。', '前腳完整踩地，後膝下降；由前腳推回。', '前膝內夾、步距過窄、後腳搶力。', { start: 6, side: true, next: ['split', 'db_stepup'] }],
-  ['db_stepup', '啞鈴登階', 'db', '股四頭1 臀1', '股四頭、臀肌', '跳箱或穩固椅子，高度約膝蓋。', '前腳完整踩上，用前腳把身體推上去，慢慢下來。', '後腳蹬地借力。', { start: 6, side: true }],
-  ['heel_squat', '腳跟墊高雙啞鈴深蹲', 'db', '股四頭1 臀.5', '股四頭、臀肌', '腳跟墊高，雙手各持一顆啞鈴置於身側或肩側。', '膝蓋沿腳尖方向前移，軀幹穩定下蹲後站起。', '膝內夾、腳跟離墊或底部失去張力。', { start: 8, next: ['pause_squat', 'split', 'bb_squat'] }],
-  ['pause_squat', '暫停雙啞鈴深蹲', 'db', '股四頭1 臀.5', '股四頭、臀肌、底部控制', '雙手各持一顆啞鈴置於身側或肩側，選擇穩定站距。', '下降至可控深度，停 1–2 秒但不放鬆，再站起。', '底部坐死、憋氣過久或為停頓犧牲姿勢。', { start: 8, next: ['split', 'bb_squat', 'smith_squat'] }],
-  ['goblet', '高腳杯深蹲', 'db', '股四頭1 臀.5', '股四頭、臀肌', '雙手捧一顆啞鈴於胸前。', '坐向腳跟之間，軀幹挺直再站起。', '膝內夾、圓背。', { kind: 'db1', start: 16 }],
-  ['split', '保加利亞分腿蹲', 'db', '股四頭1 臀1', '股四頭、臀肌、單腿穩定', '後腳置於椅面，前腳站到能穩定下蹲的位置。', '垂直下降，前腳完整踩地並主動發力站起；後腳只提供支撐。', '前膝內夾、站距太窄、後腳推椅。', { start: 6, side: true, next: ['split_deficit', 'smith_split'] }],
-  ['split_deficit', '前腳墊高保加利亞分腿蹲', 'db', '股四頭1 臀1', '股四頭、臀肌（更大活動範圍）', '前腳踩 3–5 cm 墊片，其餘同保加利亞分腿蹲。', '下降到更深的位置，前腳發力站起。', '深度超過可控範圍。', { start: 6, side: true }],
-  ['db_hipthrust', '啞鈴臀推', 'db', '臀1 腿後.5', '臀大肌', '上背靠椅，啞鈴放髖部。', '收下巴、骨盆後傾，推髖到身體成一直線。', '腰部過伸代替伸髖。', { kind: 'db1', start: 20, next: ['bb_hipthrust'] }],
-  ['calf1', '單腳站姿提踵', 'db', '小腿1', '腓腸肌、足踝控制', '單腳站穩，另一手扶固定物。', '腳跟充分下降，前腳掌推地抬高並停頓。', '彈震、腳踝向外翻、活動範圍過短。', { kind: 'db1', start: 10, side: true }],
-  ['calf2', '坐姿或站姿提踵', 'db', '小腿1', '小腿肌群', '選擇坐姿或站姿後長期固定版本。', '底部伸展、頂端收縮，每次完整範圍。', '快速彈震、左右偏移。', { kind: 'db1', start: 10, next: ['calf1'] }],
+  ['rdl', '雙啞鈴 RDL', 'db', '', '腿後肌、臀大肌、豎脊肌', '雙腳髖寬，啞鈴在大腿前側。', '膝微彎固定，髖向後推；啞鈴貼腿下降至張力終點。', '變成深蹲、啞鈴離腿、為追深度而圓背。', { sl: 'dumbbell-romanian-deadlift|Glutes LowBack Hams|Adductors Traps Forearms', start: 14, next: ['bstance', 'sl_rdl', 'bb_rdl'] }],
+  ['bstance', 'B-stance 啞鈴 RDL', 'db', '', '主腳腿後肌、臀肌', '後腳退半步，以腳尖輕點地作支架。', '主腳髖向後推，骨盆保持正向；由主腳伸髖。', '後腳推地、骨盆旋轉。', { sl: '~dumbbell-romanian-deadlift|Glutes LowBack Hams|Adductors Traps Forearms', start: 10, side: true, next: ['sl_rdl'] }],
+  ['sl_rdl', '單腳啞鈴 RDL', 'db', '', '腿後肌、臀肌、單腳平衡', '單腳站立，可單手扶固定物。', '髖向後推、後腳往後延伸，軀幹與後腳成一直線。', '骨盆打開、膝蓋鎖死、失去平衡硬撐。', { sl: 'single-leg-romanian-deadlift|Glutes LowBack Hams|Adductors Traps Forearms', start: 8, side: true }],
+  ['rev_lunge', '反向弓箭步', 'db', '', '臀肌、股四頭、單腿穩定', '站穩後向後跨步；必要時輕扶固定物。', '前腳完整踩地，後膝下降；由前腳推回。', '前膝內夾、步距過窄、後腳搶力。', { sl: 'reverse-dumbbell-lunge|Quads Glutes Adductors|Forearms', start: 6, side: true, next: ['split', 'db_stepup'] }],
+  ['db_stepup', '啞鈴登階', 'db', '', '股四頭、臀肌', '跳箱或穩固椅子，高度約膝蓋。', '前腳完整踩上，用前腳把身體推上去，慢慢下來。', '後腳蹬地借力。', { sl: 'step-up|Quads Glutes Adductors|Hams', start: 6, side: true }],
+  ['heel_squat', '腳跟墊高雙啞鈴深蹲', 'db', '', '股四頭、臀肌', '腳跟墊高，雙手各持一顆啞鈴置於身側或肩側。', '膝蓋沿腳尖方向前移，軀幹穩定下蹲後站起。', '膝內夾、腳跟離墊或底部失去張力。', { sl: '~dumbbell-squat|Quads Glutes Adductors LowBack|Calves', start: 8, next: ['pause_squat', 'split', 'bb_squat'] }],
+  ['pause_squat', '暫停雙啞鈴深蹲', 'db', '', '股四頭、臀肌、底部控制', '雙手各持一顆啞鈴置於身側或肩側，選擇穩定站距。', '下降至可控深度，停 1–2 秒但不放鬆，再站起。', '底部坐死、憋氣過久或為停頓犧牲姿勢。', { sl: '~pause-squat|Quads Glutes Adductors LowBack|Calves', start: 8, next: ['split', 'bb_squat', 'smith_squat'] }],
+  ['goblet', '高腳杯深蹲', 'db', '', '股四頭、臀肌', '雙手捧一顆啞鈴於胸前。', '坐向腳跟之間，軀幹挺直再站起。', '膝內夾、圓背。', { sl: 'goblet-squat|Quads Glutes Adductors|LowBack Calves', kind: 'db1', start: 16 }],
+  ['split', '保加利亞分腿蹲', 'db', '', '股四頭、臀肌、單腿穩定', '後腳置於椅面，前腳站到能穩定下蹲的位置。', '軀幹保持直立，垂直下降到後膝接近地面；前腳完整踩地並主動發力站起，後腳只提供支撐。', '前膝內夾、站距太窄、後腳推椅。', { sl: 'bulgarian-split-squat|Quads Glutes Adductors|', start: 6, side: true, next: ['split_deficit', 'smith_split'] }],
+  ['split_deficit', '前腳墊高保加利亞分腿蹲', 'db', '', '股四頭、臀肌（更大活動範圍）', '前腳踩 3–5 cm 墊片，其餘同保加利亞分腿蹲。', '下降到更深的位置，前腳發力站起。', '深度超過可控範圍。', { sl: '~bulgarian-split-squat|Quads Glutes Adductors|', start: 6, side: true }],
+  ['db_hipthrust', '啞鈴臀推', 'db', '', '臀大肌', '上背靠椅，啞鈴放髖部。', '收下巴、骨盆後傾，推髖到身體成一直線，頂端膝蓋約 90°。', '腰部過伸代替伸髖。', { sl: '~hip-thrust|Glutes|Adductors Quads', kind: 'db1', start: 20, next: ['bb_hipthrust'] }],
+  ['calf1', '單腳站姿提踵', 'db', '', '腓腸肌、足踝控制', '單腳站穩，另一手扶固定物。', '腳跟充分下降，前腳掌推地抬高並停頓。', '彈震、腳踝向外翻、活動範圍過短。', { sl: '~standing-calf-raise|Calves|', kind: 'db1', start: 10, side: true }],
+  ['calf2', '坐姿或站姿提踵', 'db', '', '小腿肌群', '選擇坐姿或站姿後長期固定版本。', '底部伸展、頂端收縮，每次完整範圍。', '快速彈震、左右偏移。', { sl: 'standing-calf-raise|Calves|', kind: 'db1', start: 10, next: ['calf1'] }],
   // --- Cable（配重滑輪）---
-  ['fly', 'Cable Fly', 'cable', '胸1', '胸大肌內收', '兩側 Cable 固定同高；採前後站姿。', '手肘微彎固定，雙臂畫弧靠攏；控制伸展。', '變成推舉、肩膀前縮、拉得過深。', { start: 2 }],
-  ['pulldown', '高位下拉', 'cable', '背1 二頭.5', '背闊肌、肱二頭、下斜方', '固定高位把手與座位；大腿穩定。', '先讓肩胛下沉，再把肘拉向身體兩側；控制回程。', '大幅後仰、聳肩、用手腕把桿拉下。', { start: 5, next: ['pulldown_merged', 'chinup'] }],
-  ['pulldown_merged', '高位下拉（雙出線合併）', 'cable', '背1 二頭.5', '背闊肌、肱二頭', '用連接器把雙出線合併；同一格阻力約為一般的 2 倍。', '同高位下拉。', '同高位下拉。', { start: 3 }],
-  ['crow', 'Cable 窄握划船', 'cable', '背1 二頭.5 肩.5', '背闊肌、中背、後三角', '滑輪低位，使用窄握中立把手；固定椅距與軀幹角度。', '胸口保持穩定，肩胛自然前伸後再將把手拉向下腹；控制回程。', '反覆後仰借力、聳肩、回程失控。', { start: 4 }],
-  ['cable_row1', 'Cable 單臂划船', 'cable', '背1 二頭.5', '背闊肌、中背', '滑輪中低位，單手握把。', '肩胛先後收，再把手肘拉向髖部。', '軀幹大幅旋轉。', { start: 2, side: true }],
-  ['lateral', 'Cable 側平舉', 'cable', '肩1', '三角肌中束', '低位單側 Cable，站在機器側邊。', '在肩胛平面把手臂抬至舒適高度，慢慢下降。', '甩動、聳肩、重量過大縮短範圍。', { start: 1, side: true }],
-  ['facepull', 'Face Pull', 'cable', '肩1', '後三角、旋轉肌、中下斜方', '滑輪約眉眼高度；握住繩端或雙把手。', '拉向臉部並讓手肘外展，肩胛後收。', '聳肩、過度挺腰、只用手臂拉。', { start: 2 }],
-  ['pushdown', 'Cable 三頭下壓', 'cable', '三頭1', '肱三頭肌', '高位 Cable；上臂貼近軀幹。', '只伸直手肘，底部短暫收縮後控制回程。', '肩膀前後擺、整個身體壓下。', { start: 2, next: ['cable_ohext'] }],
-  ['cable_ohext', 'Cable 過頭三頭伸展', 'cable', '三頭1', '肱三頭肌長頭', '背對滑輪，繩索從頭後拉起。', '上臂固定在耳旁，伸直手肘。', '手肘外開、腰部拱起。', { start: 2 }],
-  ['cable_curl', 'Cable 二頭彎舉', 'cable', '二頭1', '肱二頭肌', '低位滑輪，直桿或繩索。', '上臂固定，彎舉到頂端收縮。', '身體後仰借力。', { start: 2 }],
-  ['crunch', 'Cable Crunch', 'cable', '核心1', '腹直肌、負重軀幹屈曲', '高位 Cable，跪姿或穩定站姿。', '肋骨向骨盆靠近，腹部收縮後慢慢伸展。', '只做髖屈、手臂拉繩、重量過大。', { start: 3 }],
-  ['pallof', 'Pallof 抗旋轉推', 'cable', '核心1', '腹斜肌、抗旋轉', '滑輪胸口高度，側站。', '雙手把握把推離胸口，停 2 秒再收回，身體不轉。', '身體跟著轉、聳肩。', { start: 1, side: true }],
-  ['cable_kickback', 'Cable 後踢腿', 'cable', '臀1', '臀大肌', '低位滑輪接腳踝帶。', '骨盆穩定，腿往後延伸夾臀。', '腰部過伸代替伸髖。', { start: 1, side: true }],
+  ['fly', 'Cable Fly', 'cable', '', '胸大肌內收', '兩側 Cable 固定同高；採前後站姿。', '手肘微彎固定，雙臂畫弧靠攏；控制伸展。', '變成推舉、肩膀前縮、拉得過深。', { sl: 'standing-cable-chest-fly|Chest|FrontDelt', start: 2 }],
+  ['pulldown', '高位下拉', 'cable', '', '背闊肌、肱二頭、下斜方', '固定高位把手與座位；大腿穩定。', '先讓肩胛下沉，再把肘拉向身體兩側；控制回程。', '大幅後仰、聳肩、用手腕把桿拉下。', { sl: 'lat-pulldown-with-pronated-grip|Lats|Biceps RearDelt Forearms RotCuff', start: 5, next: ['pulldown_merged', 'chinup'] }],
+  ['pulldown_merged', '高位下拉（雙出線合併）', 'cable', '', '背闊肌、肱二頭', '用連接器把雙出線合併；同一格阻力約為一般的 2 倍。', '同高位下拉。', '同高位下拉。', { sl: 'lat-pulldown-with-pronated-grip|Lats|Biceps RearDelt Forearms RotCuff', start: 3 }],
+  ['crow', 'Cable 窄握划船', 'cable', '', '背闊肌、中背、後三角', '滑輪低位，使用窄握中立把手；固定椅距與軀幹角度。', '胸口保持穩定，肩胛自然前伸後再將把手拉向下腹；控制回程。', '反覆後仰借力、聳肩、回程失控。', { sl: 'cable-close-grip-seated-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 4 }],
+  ['cable_row1', 'Cable 單臂划船', 'cable', '', '背闊肌、中背', '滑輪中低位，單手握把。', '肩胛先後收，再把手肘拉向髖部。', '軀幹大幅旋轉。', { sl: 'one-handed-cable-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 2, side: true }],
+  ['lateral', 'Cable 側平舉', 'cable', '', '三角肌中束', '低位單側 Cable，站在機器側邊。', '在肩胛平面把手臂往側邊抬到上臂約水平，慢慢下降，全程保持張力。', '甩動、聳肩、重量過大縮短範圍。', { sl: 'cable-lateral-raise|LatDelt|FrontDelt', start: 1, side: true }],
+  ['facepull', 'Face Pull', 'cable', '', '後三角、旋轉肌、中下斜方', '滑輪約眉眼高度；握住繩端或雙把手。', '把繩索拉向額頭高度，手肘保持高位，結尾時前臂向上轉、肩胛後收。', '聳肩、過度挺腰、只用手臂拉。', { sl: 'face-pull|RearDelt RotCuff|Traps LatDelt', start: 2 }],
+  ['pushdown', 'Cable 三頭下壓', 'cable', '', '肱三頭肌', '高位 Cable；上臂貼近軀幹。', '上臂貼近身體固定，只伸直手肘到底，短暫收縮後控制回程；身體保持直立。', '肩膀前後擺、身體前傾整個壓下、下背過度拱起。', { sl: 'tricep-pushdown-with-bar|Triceps|', start: 2, next: ['cable_ohext'] }],
+  ['cable_ohext', 'Cable 過頭三頭伸展', 'cable', '', '肱三頭肌長頭', '背對滑輪，繩索從頭後拉起。', '背對滑輪、身體微前傾，上臂固定在耳旁，伸直手肘。', '手肘外開、腰部拱起。', { sl: 'overhead-cable-triceps-extension|Triceps|', start: 2 }],
+  ['cable_curl', 'Cable 二頭彎舉', 'cable', '', '肱二頭肌', '低位滑輪，直桿或繩索。', '上臂固定，彎舉到頂端收縮。', '身體後仰借力。', { sl: 'cable-curl-with-bar|Biceps|Forearms', start: 2 }],
+  ['crunch', 'Cable Crunch', 'cable', '', '腹直肌、負重軀幹屈曲', '高位 Cable，跪姿或穩定站姿。', '肋骨向骨盆靠近，腹部收縮後慢慢伸展。', '只做髖屈、手臂拉繩、重量過大。', { sl: 'cable-crunch|Abs|Obliques', start: 3 }],
+  ['pallof', 'Pallof 抗旋轉推', 'cable', '', '腹斜肌、抗旋轉', '滑輪胸口高度，側站。', '雙手把握把推離胸口，停 2 秒再收回，身體不轉。', '身體跟著轉、聳肩。', { sl: 'pallof-press|Obliques Abs|', start: 1, side: true }],
+  ['cable_kickback', 'Cable 後踢腿', 'cable', '', '臀大肌', '低位滑輪接腳踝帶。', '骨盆穩定，腿往後延伸夾臀。', '腰部過伸代替伸髖。', { sl: 'cable-glute-kickback|Glutes|Hams Adductors', start: 1, side: true }],
   // --- 自重 ---
-  ['chinup', '引體向上', 'bw', '背1 二頭.5', '背闊肌、肱二頭、握力', '自然反手／半反手握，先穩定懸垂。', '肩胛先下沉，將手肘拉向身體兩側，胸口朝握把靠近；控制下降。', '擺盪借力、跳起猛墜。', {}],
-  ['pushup', '伏地挺身', 'bw', '胸1 三頭.5 肩.5', '胸大肌、三頭、軀幹穩定', '雙手略寬於肩，從頭到腳維持直線。', '胸口朝地面下降，手肘沿舒服角度後移，再把地面推開。', '腰部塌陷、手肘完全外開。', { next: ['pushup_decline', 'dips'] }],
-  ['pushup_decline', '腳抬高伏地挺身', 'bw', '胸1 三頭.5 肩.5', '上胸、三頭', '雙腳放在椅上。', '同伏地挺身，保持身體直線。', '腰部塌陷。', { next: ['dips'] }],
-  ['dips', '雙槓撐體', 'bw', '胸1 三頭1 肩.5', '下胸、三頭', '雙槓或撐體架，身體微前傾。', '下降到肩膀舒適的深度，再推起。', '下降過深、聳肩。', {}],
-  ['deadbug', 'Dead Bug', 'bw', '核心1', '腹部抗伸展、軀幹控制', '仰躺，髖膝約 90°，腰背輕貼地。', '吐氣收肋，對側手腳緩慢伸遠，再回到中央。', '腰背拱起、憋氣、動作過快。', {}],
-  ['core2', 'Dead Bug／反向捲腹', 'bw', '核心1', '腹直肌、抗伸展', '選定 Dead Bug 或反向捲腹並固定版本。', '以腹部控制骨盆，不用腿部甩動。', '腰背拱起、用慣性。', { next: ['hanging_raise', 'crunch'] }],
-  ['hanging_raise', '懸吊舉腿', 'bw', '核心1', '腹直肌下段、髖屈肌', '懸吊在引體桿。', '骨盆後傾帶動腿抬起，控制下放。', '擺盪、只用髖屈。', {}],
-  ['plank', '棒式（記秒數）', 'bw', '核心1', '核心抗伸展', '前臂撐地，身體一直線。', '收腹夾臀，維持指定秒數；次數欄填秒數。', '腰部塌陷、憋氣。', {}],
+  ['chinup', '引體向上', 'bw', '', '背闊肌、肱二頭、握力', '自然反手／半反手握，先穩定懸垂。', '肩胛先下沉，將手肘拉向身體兩側，拉到下巴過桿；控制下降到手臂伸直。', '擺盪借力、跳起猛墜。', { sl: 'chin-up|Lats|Biceps RearDelt Forearms RotCuff' }],
+  ['pushup', '伏地挺身', 'bw', '', '胸大肌、三頭、軀幹穩定', '雙手略寬於肩，從頭到腳維持直線。', '胸口朝地面下降，手肘沿舒服角度後移，再把地面推開。', '腰部塌陷、手肘完全外開。', { sl: 'push-up|Chest FrontDelt|Triceps Abs', next: ['pushup_decline', 'dips'] }],
+  ['pushup_decline', '腳抬高伏地挺身', 'bw', '', '上胸、三頭', '雙腳放在椅上。', '同伏地挺身，保持身體直線。', '腰部塌陷。', { sl: 'decline-push-up|Chest FrontDelt|Triceps Abs', next: ['dips'] }],
+  ['dips', '雙槓撐體', 'bw', '', '下胸、三頭', '雙槓或撐體架，身體微前傾。', '身體微前傾，控制下降到肩膀略低於手肘（不痛的範圍內）；肩膀下沉，手肘往後而非外開，再推起。', '下降過深到肩痛、聳肩、手肘外開。', { sl: 'bar-dip|Chest FrontDelt Triceps|' }],
+  ['deadbug', 'Dead Bug', 'bw', '', '腹部抗伸展、軀幹控制', '仰躺，髖膝約 90°，腰背輕貼地。', '吐氣收肋，對側手腳緩慢伸遠，再回到中央。', '腰背拱起、憋氣、動作過快。', { sl: 'dead-bugs|Abs|Obliques' }],
+  ['core2', 'Dead Bug／反向捲腹', 'bw', '', '腹直肌、抗伸展', '選定 Dead Bug 或反向捲腹並固定版本。', '以腹部控制骨盆，不用腿部甩動。', '腰背拱起、用慣性。', { sl: '~dead-bugs|Abs|Obliques', next: ['hanging_raise', 'crunch'] }],
+  ['hanging_raise', '懸吊舉腿', 'bw', '', '腹直肌下段、髖屈肌', '懸吊在引體桿。', '骨盆後傾帶動腿抬起，控制下放。', '擺盪、只用髖屈。', { sl: 'hanging-leg-raise|Abs HipFlex|Obliques' }],
+  ['plank', '棒式（記秒數）', 'bw', '', '核心抗伸展', '前臂撐地，身體一直線。', '收腹夾臀、前臂把地面推開，身體從頭到腳跟一直線；次數欄填秒數。', '腰部塌陷、憋氣。', { sl: 'plank|Abs|Obliques' }],
   // --- 槓鈴 ---
-  ['bb_squat', '槓鈴背蹲舉', 'barbell', '股四頭1 臀1 核心.5', '股四頭、臀肌', '槓放上背，架上起槓，雙腳略寬於肩。', '吸氣撐住核心，坐下到可控深度，再站起。', '膝內夾、圓背、腳跟離地。', { start: 40 }],
-  ['bb_front', '槓鈴前蹲舉', 'barbell', '股四頭1 臀.5 核心.5', '股四頭、上背', '槓放前三角肌，手肘抬高。', '軀幹直立下蹲再站起。', '手肘掉下、圓上背。', { start: 30 }],
-  ['bb_dl', '傳統硬舉', 'barbell', '腿後1 臀1 背.5', '後側鏈', '槓在腳中段上方，握距略寬於腿。', '背部平直，腿推地把槓拉起，鎖髖後放下。', '圓背、槓離身體。', { start: 60 }],
-  ['bb_rdl', '槓鈴 RDL', 'barbell', '腿後1 臀1', '腿後肌、臀肌', '站姿握槓，膝微彎。', '髖向後推，槓貼腿下降，再伸髖站直。', '變成深蹲、槓離腿。', { start: 40 }],
-  ['bb_bench', '槓鈴臥推', 'barbell', '胸1 三頭.5 肩.5', '胸大肌、三頭', '眼睛在槓下方，肩胛後收，腳踩穩。', '槓下放到胸骨下緣，再推回。', '彈胸、屁股離椅。', { start: 40 }],
-  ['bb_incline', '槓鈴上斜臥推', 'barbell', '胸1 三頭.5 肩.5', '上胸', '椅背 30° 左右。', '槓下放到上胸，再推回。', '椅背過高。', { start: 30 }],
-  ['bb_ohp', '站姿槓鈴肩推', 'barbell', '肩1 三頭.5 核心.5', '三角肌、三頭', '槓在鎖骨前，握距略寬於肩。', '夾臀收腹，把槓推過頭頂，頭穿過去。', '過度後仰。', { start: 20 }],
-  ['bb_row', '槓鈴划船', 'barbell', '背1 二頭.5', '背闊肌、中背', '髖鉸鏈前傾約 45°。', '把槓拉向下腹，控制放下。', '用身體甩、圓背。', { start: 30 }],
-  ['bb_hipthrust', '槓鈴臀推', 'barbell', '臀1 腿後.5', '臀大肌', '上背靠椅，槓放髖部（墊護墊）。', '推髖到身體一直線，頂端夾臀。', '腰部過伸。', { start: 40 }],
-  ['bb_curl', '槓鈴彎舉', 'barbell', '二頭1', '肱二頭肌', '反握，握距與肩同寬。', '上臂固定，彎舉到頂端。', '身體後仰借力。', { start: 20 }],
+  ['bb_squat', '槓鈴背蹲舉', 'barbell', '', '股四頭、臀肌', '槓放上背，架上起槓，雙腳略寬於肩。', '吸氣撐住核心，坐下到可控深度，再站起。', '膝內夾、圓背、腳跟離地。', { sl: 'squat|Quads Adductors Glutes LowBack|Calves', start: 40 }],
+  ['bb_front', '槓鈴前蹲舉', 'barbell', '', '股四頭、上背', '槓放前三角肌，手肘抬高。', '軀幹直立下蹲再站起。', '手肘掉下、圓上背。', { sl: 'front-squat|Quads Glutes Adductors LowBack|Calves', start: 30 }],
+  ['bb_dl', '傳統硬舉', 'barbell', '', '後側鏈', '槓在腳中段上方，握距略寬於腿。', '背部平直，腿推地把槓拉起，鎖髖後放下。', '圓背、槓離身體。', { sl: 'deadlift|Glutes LowBack|Quads Hams Adductors Traps Forearms', start: 60 }],
+  ['bb_rdl', '槓鈴 RDL', 'barbell', '', '腿後肌、臀肌', '站姿握槓，膝微彎。', '髖向後推，槓貼腿下降，再伸髖站直。', '變成深蹲、槓離腿。', { sl: 'romanian-deadlift|Glutes LowBack Hams|Adductors Traps Forearms', start: 40 }],
+  ['bb_bench', '槓鈴臥推', 'barbell', '', '胸大肌、三頭', '眼睛在槓下方，肩胛後收，腳踩穩。', '槓下放到胸骨下緣，再推回。', '彈胸、屁股離椅。', { sl: 'bench-press|Chest FrontDelt|Triceps', start: 40 }],
+  ['bb_incline', '槓鈴上斜臥推', 'barbell', '', '上胸', '椅背 30° 左右。', '槓下放到上胸，再推回。', '椅背過高。', { sl: 'incline-bench-press|Chest FrontDelt|Triceps', start: 30 }],
+  ['bb_ohp', '站姿槓鈴肩推', 'barbell', '', '三角肌、三頭', '槓在鎖骨前，握距略寬於肩。', '夾臀收腹，把槓推過頭頂，頭穿過去。', '過度後仰。', { sl: 'overhead-press|FrontDelt|Triceps LatDelt', start: 20 }],
+  ['bb_row', '槓鈴划船', 'barbell', '', '背闊肌、中背', '髖鉸鏈前傾約 45°。', '把槓拉向下腹，控制放下。', '用身體甩、圓背。', { sl: 'barbell-row|Lats Traps RearDelt|Biceps LowBack Forearms RotCuff', start: 30 }],
+  ['bb_hipthrust', '槓鈴臀推', 'barbell', '', '臀大肌', '上背靠椅，槓放髖部（墊護墊）。', '推髖到身體一直線，頂端膝蓋約 90° 並夾臀。', '腰部過伸。', { sl: 'hip-thrust|Glutes|Adductors Quads', start: 40 }],
+  ['bb_curl', '槓鈴彎舉', 'barbell', '', '肱二頭肌', '反握，握距與肩同寬。', '上臂固定，彎舉到頂端。', '身體後仰借力。', { sl: 'barbell-curl|Biceps|Forearms', start: 20 }],
   // --- 史密斯 ---
-  ['smith_squat', '史密斯深蹲', 'smith', '股四頭1 臀1', '股四頭、臀肌', '雙腳略往前站，槓在上背。', '坐下到可控深度再站起。', '腳站太後面、膝內夾。', { start: 30 }],
-  ['smith_bench', '史密斯臥推', 'smith', '胸1 三頭.5 肩.5', '胸大肌、三頭', '槓下放點對準胸骨下緣。', '下放到胸口再推起。', '彈胸。', { start: 30 }],
-  ['smith_incline', '史密斯上斜臥推', 'smith', '胸1 三頭.5 肩.5', '上胸', '椅背 30° 左右。', '下放到上胸再推起。', '椅背過高。', { start: 20 }],
-  ['smith_split', '史密斯分腿蹲', 'smith', '股四頭1 臀1', '股四頭、臀肌', '前後分腿站在槓下。', '垂直下降，前腳發力站起。', '前膝內夾。', { start: 20, side: true }],
-  ['smith_ohp', '史密斯坐姿肩推', 'smith', '肩1 三頭.5', '三角肌', '椅子放在槓下，椅背直立。', '從鎖骨高度推到頂端。', '過度後仰。', { start: 20 }],
+  ['smith_squat', '史密斯深蹲', 'smith', '', '股四頭、臀肌', '雙腳略往前站，槓在上背。', '坐下到可控深度再站起。', '腳站太後面、膝內夾。', { sl: 'smith-machine-squat|Quads Glutes Adductors LowBack|Calves', start: 30 }],
+  ['smith_bench', '史密斯臥推', 'smith', '', '胸大肌、三頭', '槓下放點對準胸骨下緣。', '下放到胸口再推起。', '彈胸。', { sl: 'smith-machine-bench-press|Chest FrontDelt|Triceps', start: 30 }],
+  ['smith_incline', '史密斯上斜臥推', 'smith', '', '上胸', '椅背 30° 左右。', '下放到上胸再推起。', '椅背過高。', { sl: 'smith-machine-incline-bench-press|Chest FrontDelt|Triceps', start: 20 }],
+  ['smith_split', '史密斯分腿蹲', 'smith', '', '股四頭、臀肌', '前後分腿站在槓下。', '垂直下降，前腳發力站起。', '前膝內夾。', { sl: '~smith-machine-lunge|Quads Glutes Adductors|', start: 20, side: true }],
+  ['smith_ohp', '史密斯坐姿肩推', 'smith', '', '三角肌', '椅子放在槓下，椅背直立。', '從鎖骨高度推到頂端。', '過度後仰。', { sl: 'seated-smith-machine-shoulder-press|FrontDelt|Triceps LatDelt', start: 20 }],
   // --- 有氧 ---
-  ['bike', '飛輪', 'bike', '', '心肺耐力', '調整座椅高度：踩到最低點時膝蓋微彎。', '記錄時間、阻力檔位、距離與平均心率。', '座椅太低、只用股四頭。', {}],
+  ['bike', '飛輪', 'bike', '', '心肺耐力', '調整座椅高度：踩到最低點時膝蓋微彎。', '記錄時間、阻力檔位、距離與平均心率。', '座椅太低、只用股四頭。', { sl: 'stationary-bike||' }],
   ['run', '跑步／健走', 'bw', '', '心肺耐力', '戶外或跑步機。', '記錄時間、距離與平均心率。', '一開始配速太快。', { kind: 'cardio' }],
   // --- 更多啞鈴 ---
-  ['db_arnold', '阿諾肩推', 'db', '肩1 三頭.5', '三角肌前束與中束', '坐姿，椅背直立，啞鈴在胸前、掌心朝自己。', '推起時同時把掌心轉向前，到頂端再循原路放下。', '聳肩、過度拱腰、轉腕太快。', { start: 6 }],
-  ['db_front_raise', '啞鈴前平舉', 'db', '肩1', '三角肌前束', '站姿，啞鈴在大腿前。', '手肘微彎，向前抬到肩高，慢慢放下。', '身體後仰甩動。', { start: 4 }],
-  ['db_chest_row', '胸靠上斜啞鈴划船', 'db', '背1 二頭.5 肩.5', '中背、背闊肌', '胸口趴在 30–45° 上斜椅，雙手垂直持鈴。', '肩胛先後收，再把手肘往後拉，頂端停一下。', '胸口離開椅背、聳肩。', { start: 10 }],
-  ['db_skull', '啞鈴仰臥臂屈伸', 'db', '三頭1', '肱三頭肌', '平躺，雙手持鈴伸直在胸口上方，掌心相對。', '上臂固定，彎肘讓啞鈴降到頭側，再伸直。', '手肘外開、上臂前後擺。', { start: 6 }],
+  ['db_arnold', '阿諾肩推', 'db', '', '三角肌前束與中束', '坐姿，椅背直立，啞鈴在胸前、掌心朝自己。', '推起時同時把掌心轉向前，到頂端再循原路放下。', '聳肩、過度拱腰、轉腕太快。', { sl: 'arnold-press|FrontDelt|LatDelt Triceps', start: 6 }],
+  ['db_front_raise', '啞鈴前平舉', 'db', '', '三角肌前束', '站姿，啞鈴在大腿前。', '手肘微彎，向前抬到肩高，慢慢放下。', '身體後仰甩動。', { sl: 'dumbbell-front-raise|FrontDelt|LatDelt', start: 4 }],
+  ['db_chest_row', '胸靠上斜啞鈴划船', 'db', '', '中背、背闊肌', '胸口趴在 30–45° 上斜椅，雙手垂直持鈴。', '肩胛先後收，再把手肘往後拉，頂端停一下。', '胸口離開椅背、聳肩。', { sl: 'chest-supported-dumbbell-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 10 }],
+  ['db_skull', '啞鈴仰臥臂屈伸', 'db', '', '肱三頭肌', '平躺，雙手持鈴伸直在胸口上方，掌心相對。', '上臂固定，彎肘讓啞鈴降到頭側，再伸直。', '手肘外開、上臂前後擺。', { sl: 'dumbbell-lying-triceps-extension|Triceps|', start: 6 }],
   ['db_kickback', '啞鈴三頭後屈伸', 'db', '三頭1', '肱三頭肌', '單手撐椅，上臂貼身與地面平行。', '只伸直手肘到底，頂端夾緊再慢放。', '上臂下垂、甩動。', { start: 4, side: true }],
-  ['db_incline_curl', '上斜啞鈴彎舉', 'db', '二頭1', '肱二頭肌長頭', '椅背 45–60°，手臂自然垂在身體後方。', '上臂不動，彎舉到頂端再完整放下。', '肩膀前移代償。', { start: 4 }],
-  ['db_concentration', '集中彎舉', 'db', '二頭1', '肱二頭肌', '坐姿，手肘靠在大腿內側。', '只動前臂彎舉，頂端收縮再慢放。', '用身體帶動。', { start: 6, side: true }],
-  ['db_walk_lunge', '啞鈴行走弓箭步', 'db', '股四頭1 臀1', '股四頭、臀肌、平衡', '雙手持鈴，前方留出走道。', '向前跨步下蹲，前腳推起後換腳前進。', '步幅太小、前膝內夾。', { start: 6, side: true }],
-  ['db_sumo', '啞鈴相撲深蹲', 'db', '股四頭1 臀1', '內收肌、臀肌、股四頭', '寬站姿、腳尖朝外，雙手持一顆啞鈴垂在中間。', '膝蓋朝腳尖方向打開，蹲下再站起。', '膝內夾、圓背。', { kind: 'db1', start: 16 }],
-  ['db_farmer', '農夫走路（記秒數）', 'db', '核心1 背.5', '握力、核心穩定、上背', '雙手各持一顆重啞鈴站直。', '挺胸收腹，穩定步伐行走；次數欄填秒數。', '聳肩、身體左右晃。', { start: 20 }],
+  ['db_incline_curl', '上斜啞鈴彎舉', 'db', '', '肱二頭肌長頭', '椅背 45–60°，手臂自然垂在身體後方。', '上臂不動，彎舉到頂端再完整放下。', '肩膀前移代償。', { sl: 'incline-dumbbell-curl|Biceps|Forearms', start: 4 }],
+  ['db_concentration', '集中彎舉', 'db', '', '肱二頭肌', '坐姿，手肘靠在大腿內側。', '只動前臂彎舉，頂端收縮再慢放。', '用身體帶動。', { sl: 'concentration-curl|Biceps|Forearms', start: 6, side: true }],
+  ['db_walk_lunge', '啞鈴行走弓箭步', 'db', '', '股四頭、臀肌、平衡', '雙手持鈴，前方留出走道。', '向前跨步下蹲，前腳推起後換腳前進。', '步幅太小、前膝內夾。', { sl: 'dumbbell-walking-lunge|Quads Glutes Adductors|', start: 6, side: true }],
+  ['db_sumo', '啞鈴相撲深蹲', 'db', '', '內收肌、臀肌、股四頭', '寬站姿、腳尖朝外，雙手持一顆啞鈴垂在中間。', '膝蓋朝腳尖方向打開，蹲下再站起。', '膝內夾、圓背。', { sl: 'sumo-squat|Quads Glutes Adductors LowBack|Calves', kind: 'db1', start: 16 }],
+  ['db_farmer', '農夫走路（記秒數）', 'db', '', '握力、核心穩定、上背', '雙手各持一顆重啞鈴站直。', '挺胸收腹，穩定步伐行走；次數欄填秒數。', '聳肩、身體左右晃。', { sl: 'farmers-walk|Forearms Obliques Glutes Traps|Quads Abs LowBack Calves LatDelt', start: 20 }],
   // --- 更多 Cable／滑輪 ---
-  ['cable_straight_pd', 'Cable 直臂下壓', 'cable', '背1', '背闊肌（不需二頭）', '高位滑輪接直桿或繩索，身體微前傾。', '手肘微彎固定，雙臂畫弧把桿壓到大腿前。', '彎肘變成三頭下壓、聳肩。', { start: 2 }],
-  ['cable_pulldown1', 'Cable 單臂下拉', 'cable', '背1 二頭.5', '背闊肌、單側控制', '高位滑輪接單握把，跪姿或坐姿。', '肩胛下沉，把手肘拉向同側髖部。', '身體大幅側傾。', { start: 2, side: true }],
-  ['cable_rear_fly', 'Cable 反向飛鳥', 'cable', '肩1 背.5', '後三角、中背', '兩條纜線交叉，滑輪約肩高。', '手肘微彎，向兩側往後打開到身體一直線。', '聳肩、用背部後仰。', { start: 1 }],
-  ['cable_y_raise', 'Cable Y 字上舉', 'cable', '肩1 背.5', '三角肌中後束、下斜方', '低位滑輪，雙手交叉握對側把手。', '沿 Y 字方向把手臂舉到頭側上方。', '聳肩、腰部過伸。', { start: 1 }],
-  ['cable_fly_low', 'Cable 低位往上飛鳥', 'cable', '胸1 肩.5', '上胸', '滑輪設在低位，前後站姿。', '手肘微彎，由下往上畫弧到胸口高度。', '變成前平舉、聳肩。', { start: 1 }],
-  ['cable_fly_high', 'Cable 高位往下飛鳥', 'cable', '胸1', '下胸', '滑輪設在高位，身體微前傾。', '由上往下畫弧，雙手在腹前交會。', '用手臂壓、肩膀前縮。', { start: 2 }],
-  ['cable_press', 'Cable 站姿推胸', 'cable', '胸1 三頭.5 肩.5', '胸大肌、核心穩定', '滑輪約胸高，背對機台前後站姿。', '把把手往前推到手臂伸直，控制回程。', '腰部過伸、肩膀聳起。', { start: 3 }],
-  ['cable_hammer', 'Cable 繩索錘式彎舉', 'cable', '二頭1', '肱肌、肱橈肌', '低位滑輪接繩索，掌心相對。', '上臂固定，彎舉到頂端。', '身體後仰。', { start: 2 }],
-  ['cable_woodchop', 'Cable 伐木', 'cable', '核心1', '腹斜肌、旋轉力量', '滑輪高位，側站。', '雙手由高往對側低處斜拉，髖部帶動旋轉。', '只用手臂拉、腰椎過度扭轉。', { start: 2, side: true }],
-  ['cable_pullthrough', 'Cable 髖鉸鏈後拉', 'cable', '臀1 腿後1', '臀肌、腿後', '背對低位滑輪，繩索從雙腿間穿過。', '髖向後推，再伸髖站直夾臀。', '變成深蹲、用手拉。', { start: 3 }],
+  ['cable_straight_pd', 'Cable 直臂下壓', 'cable', '', '背闊肌（不需二頭）', '高位滑輪接直桿或繩索，身體微前傾。', '手肘微彎固定，雙臂畫弧把桿壓到大腿前。', '彎肘變成三頭下壓、聳肩。', { sl: 'straight-arm-lat-pulldown|Lats|RearDelt RotCuff', start: 2 }],
+  ['cable_pulldown1', 'Cable 單臂下拉', 'cable', '', '背闊肌、單側控制', '高位滑輪接單握把，跪姿或坐姿。', '肩胛下沉，把手肘拉向同側髖部。', '身體大幅側傾。', { sl: 'one-handed-lat-pulldown|Lats|Biceps RearDelt Forearms RotCuff', start: 2, side: true }],
+  ['cable_rear_fly', 'Cable 反向飛鳥', 'cable', '', '後三角、中背', '兩條纜線交叉，滑輪約肩高。', '手肘微彎，向兩側往後打開到身體一直線。', '聳肩、用背部後仰。', { sl: 'reverse-cable-fly|RearDelt RotCuff|Traps', start: 1 }],
+  ['cable_y_raise', 'Cable Y 字上舉', 'cable', '側肩1 後肩.5 背.5', '三角肌中後束、下斜方', '低位滑輪，雙手交叉握對側把手。', '沿 Y 字方向把手臂舉到頭側上方。', '聳肩、腰部過伸。', { start: 1 }],
+  ['cable_fly_low', 'Cable 低位往上飛鳥', 'cable', '', '上胸', '滑輪設在低位，前後站姿。', '手肘微彎，由下往上畫弧到胸口高度。', '變成前平舉、聳肩。', { sl: '~standing-cable-chest-fly|Chest|FrontDelt', start: 1 }],
+  ['cable_fly_high', 'Cable 高位往下飛鳥', 'cable', '', '下胸', '滑輪設在高位，身體微前傾。', '由上往下畫弧，雙手在腹前交會。', '用手臂壓、肩膀前縮。', { sl: '~standing-cable-chest-fly|Chest|FrontDelt', start: 2 }],
+  ['cable_press', 'Cable 站姿推胸', 'cable', '', '胸大肌、核心穩定', '滑輪約胸高，背對機台前後站姿。', '把把手往前推到手臂伸直，控制回程。', '腰部過伸、肩膀聳起。', { sl: 'cable-chest-press|Chest|FrontDelt Triceps', start: 3 }],
+  ['cable_hammer', 'Cable 繩索錘式彎舉', 'cable', '', '肱肌、肱橈肌', '低位滑輪接繩索，掌心相對。', '上臂固定，彎舉到頂端。', '身體後仰。', { sl: 'cable-curl-with-rope|Biceps|Forearms', start: 2 }],
+  ['cable_woodchop', 'Cable 伐木', 'cable', '', '腹斜肌、旋轉力量', '滑輪高位，側站。', '雙手由高往對側低處斜拉，髖部帶動旋轉。', '只用手臂拉、腰椎過度扭轉。', { sl: 'cable-machine-wood-chop-high-to-low|Obliques|Abs', start: 2, side: true }],
+  ['cable_pullthrough', 'Cable 髖鉸鏈後拉', 'cable', '', '臀肌、腿後', '背對低位滑輪，繩索從雙腿間穿過。', '髖向後推，再伸髖站直夾臀。', '變成深蹲、用手拉。', { sl: 'cable-pull-through|Glutes|LowBack Hams Adductors', start: 3 }],
   // --- 更多自重 ---
-  ['inverted_row', '反式划船', 'bw', '背1 二頭.5', '中背、背闊肌', '身體在低桿或史密斯槓下，腳跟著地，身體一直線。', '把胸口拉向槓，再慢慢放下。', '臀部下垂、聳肩。', {}],
-  ['glute_bridge', '臀橋', 'bw', '臀1 腿後.5', '臀大肌', '仰躺屈膝，腳跟靠近臀部。', '骨盆後傾推髖到身體成一直線，頂端夾臀。', '用腰撐起。', { next: ['db_hipthrust'] }],
-  ['nordic', '北歐腿彎舉', 'bw', '腿後1', '腿後肌（離心）', '跪姿，腳踝被固定。', '身體一直線，慢慢往前倒，用手接住後推回。', '髖部彎曲、下降太快。', {}],
-  ['side_plank', '側棒式（記秒數）', 'bw', '核心1', '腹斜肌、側邊穩定', '側躺，手肘在肩膀正下方。', '撐起骨盆，維持身體一直線；次數欄填秒數。', '骨盆下沉或往後翻。', { side: true }],
+  ['inverted_row', '反式划船', 'bw', '', '中背、背闊肌', '身體在低桿或史密斯槓下，腳跟著地，身體一直線。', '把胸口拉向槓，再慢慢放下。', '臀部下垂、聳肩。', { sl: 'inverted-row|Lats Traps RearDelt|Biceps Forearms RotCuff' }],
+  ['glute_bridge', '臀橋', 'bw', '', '臀大肌', '仰躺屈膝，腳跟靠近臀部。', '骨盆後傾推髖到身體成一直線，頂端夾臀。', '用腰撐起。', { sl: 'glute-bridge|Glutes|Quads', next: ['db_hipthrust'] }],
+  ['nordic', '北歐腿彎舉', 'bw', '', '腿後肌（離心）', '跪姿，腳踝被固定。', '髖部保持伸直，用 2 秒以上慢慢往前倒，用手接住後推回。', '髖部彎曲、下降太快。', { sl: 'nordic-hamstring-eccentric|Hams|' }],
+  ['side_plank', '側棒式（記秒數）', 'bw', '', '腹斜肌、側邊穩定', '側躺，手肘在肩膀正下方。', '撐起骨盆，維持身體一直線；次數欄填秒數。', '骨盆下沉或往後翻。', { sl: 'side-plank|Obliques|Abs', side: true }],
   ['bird_dog', '鳥狗式', 'bw', '核心1', '核心穩定、抗旋轉', '四足跪姿，背部平直。', '對側手腳緩慢伸直，停 2 秒再回來。', '骨盆旋轉、腰部下塌。', { side: true }],
-  ['pike_pushup', '屈體伏地挺身', 'bw', '肩1 三頭.5', '三角肌、三頭', '臀部抬高成倒 V 字。', '頭往手前方下降，再推回。', '手肘外開、頭直上直下。', {}],
-  ['bw_squat', '徒手深蹲', 'bw', '股四頭1 臀.5', '股四頭、臀肌', '雙腳與肩同寬。', '坐向腳跟之間，軀幹穩定站起。', '膝內夾、腳跟離地。', { next: ['goblet', 'heel_squat'] }],
+  ['pike_pushup', '屈體伏地挺身', 'bw', '前肩1 三頭.5 側肩.5', '三角肌、三頭', '臀部抬高成倒 V 字。', '頭往手前方下降，再推回。', '手肘外開、頭直上直下。', {}],
+  ['bw_squat', '徒手深蹲', 'bw', '', '股四頭、臀肌', '雙腳與肩同寬。', '坐向腳跟之間，軀幹穩定站起。', '膝內夾、腳跟離地。', { sl: 'air-squat|Quads Glutes Adductors|Calves', next: ['goblet', 'heel_squat'] }],
   // --- 更多槓鈴 ---
-  ['bb_sumo_dl', '相撲硬舉', 'barbell', '臀1 腿後.5 股四頭.5', '臀肌、內收肌、後側鏈', '寬站姿，雙手在腿內側握槓。', '膝蓋往外推，腿推地把槓拉起。', '臀部先起、圓背。', { start: 50 }],
-  ['bb_close_bench', '窄握臥推', 'barbell', '三頭1 胸.5', '肱三頭肌、內側胸', '握距約與肩同寬。', '手肘靠近身體下放到下胸，再推起。', '握太窄折腕。', { start: 30 }],
-  ['bb_good_morning', '槓鈴早安式', 'barbell', '腿後1 臀.5 背.5', '腿後、豎脊肌', '槓放上背，膝微彎。', '髖向後推、軀幹前傾到腿後有張力，再站直。', '圓背、彎膝變深蹲。', { start: 20 }],
+  ['bb_sumo_dl', '相撲硬舉', 'barbell', '', '臀肌、內收肌、後側鏈', '寬站姿，雙手在腿內側握槓。', '膝蓋往外推，腿推地把槓拉起。', '臀部先起、圓背。', { sl: 'sumo-deadlift|Glutes LowBack|Quads Hams Adductors Traps Forearms', start: 50 }],
+  ['bb_close_bench', '窄握臥推', 'barbell', '', '肱三頭肌、內側胸', '握距約與肩同寬。', '雙手約在肩膀正上方或略內側，手肘靠近身體下放到下胸，再推起。', '握太窄折腕。', { sl: 'close-grip-bench-press|Triceps|Chest FrontDelt', start: 30 }],
+  ['bb_good_morning', '槓鈴早安式', 'barbell', '', '腿後、豎脊肌', '槓放上背，膝微彎。', '髖向後推、軀幹前傾到腿後有張力，再站直。', '圓背、彎膝變深蹲。', { sl: 'good-morning|Glutes LowBack Hams|Adductors', start: 20 }],
   // --- 更多史密斯 ---
-  ['smith_rdl', '史密斯 RDL', 'smith', '腿後1 臀1', '腿後肌、臀肌', '站在槓後，握距與肩同寬。', '髖向後推，槓貼腿下降，再伸髖。', '變成深蹲、圓背。', { start: 30 }],
-  ['smith_hipthrust', '史密斯臀推', 'smith', '臀1 腿後.5', '臀大肌', '上背靠椅，槓在髖部（墊護墊）。', '推髖到身體一直線，頂端夾臀。', '腰部過伸。', { start: 30 }],
-  ['smith_calf', '史密斯站姿提踵', 'smith', '小腿1', '腓腸肌', '前腳掌踩在踏板上，槓在上背。', '腳跟充分下降，再推到最高點停一下。', '彈震、膝蓋彎曲。', { start: 30 }],
-  ['smith_row', '史密斯划船', 'smith', '背1 二頭.5', '背闊肌、中背', '髖鉸鏈前傾約 45°。', '把槓拉向下腹，控制放下。', '用身體甩。', { start: 20 }],
+  ['smith_rdl', '史密斯 RDL', 'smith', '', '腿後肌、臀肌', '站在槓後，握距與肩同寬。', '髖向後推，槓貼腿下降，再伸髖。', '變成深蹲、圓背。', { sl: 'smith-machine-romanian-deadlift|Hams Glutes LowBack|Adductors Traps Forearms', start: 30 }],
+  ['smith_hipthrust', '史密斯臀推', 'smith', '', '臀大肌', '上背靠椅，槓在髖部（墊護墊）。', '推髖到身體一直線，頂端夾臀。', '腰部過伸。', { sl: 'smith-machine-hip-thrust|Glutes|Adductors Quads', start: 30 }],
+  ['smith_calf', '史密斯站姿提踵', 'smith', '', '腓腸肌', '前腳掌踩在踏板上，槓在上背。', '腳跟充分下降，再推到最高點停一下。', '彈震、膝蓋彎曲。', { sl: '~standing-calf-raise|Calves|', start: 30 }],
+  ['smith_row', '史密斯划船', 'smith', '', '背闊肌、中背', '髖鉸鏈前傾約 45°。', '把槓拉向下腹，控制放下。', '用身體甩。', { sl: '~barbell-row|Lats Traps RearDelt|Biceps LowBack Forearms RotCuff', start: 20 }],
   // --- 更多有氧 ---
-  ['bike_hiit', '飛輪間歇', 'bike', '', '心肺、無氧耐力', '暖身 5 分鐘。', '例如 30 秒衝刺＋90 秒輕踩，重複 6–10 次；記總時間與檔位。', '暖身不足、姿勢塌掉。', {}],
-  ['jumprope', '跳繩', 'bw', '小腿.5', '心肺、協調', '繩長：踩住中間，把手約到胸口。', '用手腕轉繩，腳尖輕跳。', '跳太高、手臂甩太大。', { kind: 'cardio' }],
+  ['bike_hiit', '飛輪間歇', 'bike', '', '心肺、無氧耐力', '暖身 5 分鐘。', '例如 30 秒衝刺＋90 秒輕踩，重複 6–10 次；記總時間與檔位。', '暖身不足、姿勢塌掉。', { sl: '~stationary-bike||' }],
+  ['jumprope', '跳繩', 'bw', '', '心肺、協調', '繩長：踩住中間，把手約到胸口。', '用手腕轉繩，腳尖輕跳。', '跳太高、手臂甩太大。', { kind: 'cardio' }],
 ];
 
 const EN_NAMES = {"bench": "Dumbbell Bench Press", "db_pause_bench": "Paused Dumbbell Bench Press", "incline": "Low Incline Dumbbell Press", "db_fly": "Dumbbell Fly", "ohp": "Seated Dumbbell Shoulder Press", "db_lateral": "Dumbbell Lateral Raise", "db_reardelt": "Dumbbell Rear Delt Fly", "one_row": "One Arm Dumbbell Row", "db_pullover": "Dumbbell Pullover", "curl": "Dumbbell Supinated Curl", "hammer": "Hammer Curl", "db_ohext": "Dumbbell Overhead Triceps Extension", "db_shrug": "Dumbbell Shrug", "rdl": "Dumbbell Romanian Deadlift", "bstance": "B-Stance Dumbbell RDL", "sl_rdl": "Single Leg Dumbbell RDL", "rev_lunge": "Dumbbell Reverse Lunge", "db_stepup": "Dumbbell Step Up", "heel_squat": "Heels Elevated Dumbbell Squat", "pause_squat": "Paused Dumbbell Squat", "goblet": "Goblet Squat", "split": "Bulgarian Split Squat", "split_deficit": "Front Foot Elevated Bulgarian Split Squat", "db_hipthrust": "Dumbbell Hip Thrust", "calf1": "Single Leg Calf Raise", "calf2": "Calf Raise", "fly": "Cable Fly", "pulldown": "Lat Pulldown", "pulldown_merged": "Lat Pulldown", "crow": "Seated Cable Row Close Grip", "cable_row1": "Single Arm Cable Row", "lateral": "Cable Lateral Raise", "facepull": "Face Pull", "pushdown": "Cable Triceps Pushdown", "cable_ohext": "Cable Overhead Triceps Extension", "cable_curl": "Cable Curl", "crunch": "Cable Crunch", "pallof": "Pallof Press", "cable_kickback": "Cable Glute Kickback", "chinup": "Chin Up", "pushup": "Push Up", "pushup_decline": "Decline Push Up", "dips": "Dips", "deadbug": "Dead Bug", "core2": "Dead Bug", "hanging_raise": "Hanging Leg Raise", "plank": "Plank", "bb_squat": "Barbell Back Squat", "bb_front": "Barbell Front Squat", "bb_dl": "Conventional Deadlift", "bb_rdl": "Barbell Romanian Deadlift", "bb_bench": "Barbell Bench Press", "bb_incline": "Incline Barbell Bench Press", "bb_ohp": "Barbell Overhead Press", "bb_row": "Barbell Row", "bb_hipthrust": "Barbell Hip Thrust", "bb_curl": "Barbell Curl", "smith_squat": "Smith Machine Squat", "smith_bench": "Smith Machine Bench Press", "smith_incline": "Smith Machine Incline Press", "smith_split": "Smith Machine Split Squat", "smith_ohp": "Smith Machine Shoulder Press", "bike": "Indoor Cycling", "run": "Running", "db_arnold": "Arnold Press", "db_front_raise": "Dumbbell Front Raise", "db_chest_row": "Chest Supported Dumbbell Row", "db_skull": "Dumbbell Skull Crusher", "db_kickback": "Dumbbell Triceps Kickback", "db_incline_curl": "Incline Dumbbell Curl", "db_concentration": "Concentration Curl", "db_walk_lunge": "Dumbbell Walking Lunge", "db_sumo": "Dumbbell Sumo Squat", "db_farmer": "Farmers Walk", "cable_straight_pd": "Straight Arm Pulldown", "cable_pulldown1": "Single Arm Lat Pulldown", "cable_rear_fly": "Cable Rear Delt Fly", "cable_y_raise": "Cable Y Raise", "cable_fly_low": "Low to High Cable Fly", "cable_fly_high": "High to Low Cable Fly", "cable_press": "Standing Cable Chest Press", "cable_hammer": "Cable Rope Hammer Curl", "cable_woodchop": "Cable Woodchop", "cable_pullthrough": "Cable Pull Through", "inverted_row": "Inverted Row", "glute_bridge": "Glute Bridge", "nordic": "Nordic Hamstring Curl", "side_plank": "Side Plank", "bird_dog": "Bird Dog", "pike_pushup": "Pike Push Up", "bw_squat": "Bodyweight Squat", "bb_sumo_dl": "Sumo Deadlift", "bb_close_bench": "Close Grip Bench Press", "bb_good_morning": "Barbell Good Morning", "smith_rdl": "Smith Machine RDL", "smith_hipthrust": "Smith Machine Hip Thrust", "smith_calf": "Smith Machine Calf Raise", "smith_row": "Smith Machine Row", "bike_hiit": "Spin Bike HIIT", "jumprope": "Jump Rope"};
-const LIBRARY = Object.fromEntries(LIB_ROWS.map(([id, name, eq, mus, target, setup, steps, mistake, o]) =>
-  [id, { id, name, en: EN_NAMES[id] || '', eq, muscles: m(mus), detail: { target, setup, steps, mistake }, ...o }]));
+// ---------- 肌群來源 ----------
+// sl: 'StrengthLog 網址代號|主要肌群|次要肌群'，「~」開頭＝相近動作（同肌群，器材或細節不同）
+// 計算：主要 = 1 組、次要 = 0.5 組（Pelland et al. 2024/2025 分數計算法）；同一肌群取較大值
+// 不計入：前臂、下背、內收肌、髖屈肌、旋轉肌袖（不在 12 個統計肌群內）
+// 例外：髖鉸鏈（RDL、硬舉）中斜方肌只是握住重量 → 不算背
+const SRC_MUSCLES = {
+  Chest: ['胸大肌', '胸'], Lats: ['背闊肌', '背'], Traps: ['斜方肌', '背'],
+  FrontDelt: ['三角肌前束', '前肩'], LatDelt: ['三角肌中束', '側肩'], RearDelt: ['三角肌後束', '後肩'],
+  Biceps: ['肱二頭肌', '二頭'], Triceps: ['肱三頭肌', '三頭'], Quads: ['股四頭肌', '股四頭'], Hams: ['腿後肌', '腿後'],
+  Glutes: ['臀肌', '臀'], Calves: ['小腿', '小腿'], Abs: ['腹直肌', '核心'], Obliques: ['腹斜肌', '核心'],
+  Forearms: ['前臂屈肌'], LowBack: ['下背（豎脊肌）'], Adductors: ['內收肌'], HipFlex: ['髖屈肌'], RotCuff: ['旋轉肌袖'],
+};
+const SL_BASE = 'https://www.strengthlog.com/';
+function parseSource(sl) {
+  const [slug0, p = '', s = ''] = sl.split('|'), approx = slug0.startsWith('~'), slug = slug0.replace(/^~/, '');
+  const primary = p.split(' ').filter(Boolean), secondary = s.split(' ').filter(Boolean);
+  const hinge = primary.includes('LowBack') || primary.includes('Hams'), muscles = {};
+  const add = (list, w) => list.forEach(k => {
+    const g = SRC_MUSCLES[k]?.[1]; if (!g || (w < 1 && k === 'Traps' && hinge)) return;
+    muscles[g] = Math.max(muscles[g] || 0, w);
+  });
+  add(primary, 1); add(secondary, .5);
+  const title = slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  return { muscles, source: { url: SL_BASE + slug + '/', title, approx, primary, secondary } };
+}
+const LIBRARY = Object.fromEntries(LIB_ROWS.map(([id, name, eq, mus, target, setup, steps, mistake, { sl, ...o }]) => {
+  const src = sl ? parseSource(sl) : null;
+  return [id, { id, name, en: EN_NAMES[id] || '', eq, muscles: src ? src.muscles : m(mus), detail: { target, setup, steps, mistake }, ...(src ? { source: src.source } : {}), ...o }];
+}));
+// 舊版「肩」→ 依名稱推測三角肌部位（自訂動作、AI 匯入用）
+function shoulderPart(name) { return /推|press|舉過頭/i.test(name) ? '前肩' : /反向|後|face|rear|reverse/i.test(name) ? '後肩' : '側肩' }
+function fixMuscles(muscles, name) {
+  if (!muscles || !('肩' in muscles)) return muscles;
+  const out = { ...muscles }, w = out['肩'], k = shoulderPart(name || ''); delete out['肩']; out[k] = Math.max(out[k] || 0, w); return out;
+}
 
 // 預設課表（SHARK 四日 Upper / Lower）
 const SHARK_PROGRAM = {
@@ -618,7 +656,7 @@ function migrate(src) {
     version: SCHEMA,
     prefs: { theme: 'dark', ...(s.prefs || {}) },
     equipment: mergeEquipment(s.equipment),
-    customExercises: s.customExercises || {},
+    customExercises: Object.fromEntries(Object.entries(s.customExercises || {}).map(([k, x]) => [k, x?.muscles && '肩' in x.muscles ? { ...x, muscles: fixMuscles(x.muscles, x.name) } : x])),
     programs: Array.isArray(s.programs) && s.programs.length ? s.programs : [buildShark(s.settings)],
     activeProgram: s.activeProgram || 'shark',
     sessions: (s.sessions || []).filter(x => x && typeof x === 'object').map(migrateSession),
@@ -817,6 +855,7 @@ function advise(entry) {
     const prev = hist.at(-2), p = prev && judge(prev.sets, entry);
     if (p && p.below && p.main.load === r.main.load) {
       const n = stepLoad(r.main.load, entry, -1);
+      if (n.capped) return { state: 'warn', load: r.main.load, label: fmtLoad(r.main.load, entry.kind, eq), text: `已是最輕：先求做到 ${entry.min} 下，或調低次數區間` };
       return { state: 'down', load: n.v, label: fmtLoad(n.v, entry.kind, eq), text: `連續 2 次低於 ${entry.min} 下` };
     }
   }
@@ -970,7 +1009,7 @@ function exCardHtml(e, i) {
     <div class="ex-head"><div><div class="ex-name">${esc(e.name)}</div><div class="ex-meta">${meta}${eqName}</div></div><div class="ex-time"><span>累積</span><strong>00:00</strong></div></div>
     <div class="adv-wrap">${adviceHtml(e)}</div>
     <div class="sets">${setHeadHtml(e)}${e.sets.map((x, j) => setRowHtml(e, x, j)).join('')}</div>
-    <div class="ex-actions"><button class="chip-btn" data-act="info">說明</button><button class="chip-btn" data-act="swap">替換</button><button class="chip-btn" data-act="addset">＋組</button><button class="chip-btn" data-act="delset">－組</button>${e.kind === 'cardio' ? '' : '<button class="chip-btn" data-act="apply">套用建議</button>'}</div>
+    <div class="ex-actions"><button class="chip-btn" data-act="info">說明</button><button class="chip-btn" data-act="swap">替換</button><button class="chip-btn" data-act="addset">＋組</button><button class="chip-btn" data-act="delset">－組</button>${e.kind === 'cardio' ? '' : '<button class="chip-btn" data-act="apply">套用建議</button>'}<button class="chip-btn danger" data-act="remove">移除</button></div>
     ${detailHtml(e.id, note)}</article>`;
 }
 
@@ -981,7 +1020,10 @@ function renderDay() {
   $('#dayNote').textContent = f ? `${f.program.name}` : '到「課表」新增訓練日';
   $('#sessionNotes').value = draft.notes || '';
   $('#painFlag').checked = !!draft.pain;
-  $('#exerciseList').innerHTML = draft.exercises.map(exCardHtml).join('') || '<div class="empty">這天沒有安排動作，到「課表」新增。</div>';
+  renderExercises();
+}
+function renderExercises() {
+  $('#exerciseList').innerHTML = draft.exercises.map(exCardHtml).join('') || '<div class="empty">今天還沒有動作，按下方「＋ 加入動作」。</div>';
   setupTimerSelectors(); renderTimer(); updateProgress();
 }
 function refreshCard(i) {
@@ -1023,6 +1065,7 @@ function onCardAction(ev) {
     saveDraft(); rerenderCard(i); toast(n ? `已套用到 ${n} 組` : '沒有空白的組'); return;
   }
   if (act === 'swap') return openSwap(i, false);
+  if (act === 'remove') return removeExerciseToday(i);
   if (act === 'upgrade') return openSwap(i, true);
 }
 
@@ -1081,6 +1124,45 @@ function openSwap(i, upgrade) {
   $('#pickOther').onclick = () => pickExercise(id => { openSwap(i, upgrade); setTimeout(() => choose(id), 0) }, e.id);
   $('#swapGo').onclick = () => { if (!chosen) return; const v = $('#swapStart').value; closeDialog(); replaceExercise(i, chosen, { start: v === '' ? undefined : Number(v), updateProgram: $('#swapProg').checked }) };
   if ($('#upRange')) $('#upRange').onclick = () => { const a = +$('#upMin').value, b = +$('#upMax').value; if (!(a > 0 && b >= a)) return toast('次數區間不正確'); closeDialog(); changeRange(i, a, b) };
+}
+
+// ---------- 當天加入／移除動作（只改今天；勾選才同步課表）----------
+function addExerciseToday() {
+  if (!findDay(currentDay)) return toast('先到「課表」建立訓練日');
+  pickExercise(id => {
+    const def = exDef(id); if (!def) return;
+    if (draft.exercises.some(e => e.id === id)) return toast('今天已有這個動作，可用「＋組」加組');
+    const kind = kindFor(def, def.eq), cardio = kind === 'cardio';
+    openDialog('加入動作', `<p class="muted sm">加入「${esc(def.name)}」到今天的最後面。</p>
+      ${cardio ? '' : '<div class="grid3"><label class="lab">組數<input id="axSets" class="field" type="number" inputmode="numeric" value="3"></label><label class="lab">最少下<input id="axMin" class="field" type="number" inputmode="numeric" value="8"></label><label class="lab">最多下<input id="axMax" class="field" type="number" inputmode="numeric" value="12"></label></div>'}
+      <label class="check"><input id="axProg" type="checkbox"> 也加入課表（之後這個訓練日都會有）</label>
+      <div class="row-end"><button class="btn btn-primary" id="axGo">加入</button></div>`);
+    $('#axGo').onclick = () => {
+      const sets = cardio ? 1 : clamp(Math.round(+$('#axSets').value || 3), 1, 10), min = cardio ? 1 : clamp(Math.round(+$('#axMin').value || 8), 1, 100), max = cardio ? 1 : clamp(Math.round(+$('#axMax').value || 12), min, 100);
+      const f = findDay(draft.day), toProg = $('#axProg').checked && f;
+      let slot = null;
+      if (toProg) { f.day.items.push(cardio ? { ex: id, sets, min, max } : { ex: id, sets, min, max, note: '' }); slot = f.day.items.length - 1 }
+      draft.exercises.push(newExercise({ id, eq: def.eq, kind, min, max, sets, name: def.name, side: !!def.side }, slot));
+      saveDraft(); closeDialog(); renderExercises();
+      toast(toProg ? `已加入 ${def.name}（課表也已更新）` : `今天加做 ${def.name}`);
+      $(`.ex[data-i="${draft.exercises.length - 1}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+  });
+}
+function removeExerciseToday(i) {
+  const e = draft.exercises[i], f = findDay(draft.day), item = e.slot != null ? f?.day.items[e.slot] : null, inProg = !!item && item.ex === e.slotEx;
+  const filled = e.sets.filter(x => x.done || hasReps(x) || Number(x.dur) > 0).length;
+  openDialog('移除動作', `<p>今天不做「${esc(e.name)}」？</p>${filled ? `<p class="sm warn-text">已填的 ${filled} 組會一起刪除。</p>` : ''}
+    ${inProg ? '<label class="check"><input id="rmProg" type="checkbox"> 同時從課表移除（之後都不排）</label>' : '<p class="muted sm">課表不受影響。</p>'}
+    <div class="row-end"><button class="btn btn-light" id="rmCancel">取消</button><button class="btn btn-danger" id="rmGo">移除</button></div>`);
+  $('#rmCancel').onclick = closeDialog;
+  $('#rmGo').onclick = () => {
+    const fromProg = inProg && $('#rmProg').checked;
+    if (timerState?.active?.exId === e.id) closeActive();
+    if (fromProg) { f.day.items.splice(e.slot, 1); draft.exercises.forEach(x => { if (x.slot != null && x.slot > e.slot) x.slot-- }) }
+    draft.exercises.splice(i, 1); saveDraft(); invalidate(); closeDialog(); renderExercises();
+    toast(fromProg ? `已移除 ${e.name}（課表也已更新）` : `今天不做 ${e.name}`);
+  };
 }
 
 // ---------- 計時器 ----------
@@ -1234,7 +1316,7 @@ function bars(t) {
 function renderVolume() {
   const [a, b] = weekBounds($('#volumeWeek').value || isoWeek()), valid = cleanSessions().valid.filter(s => inRange(s, a, b)), { t, cardio } = muscleTotals(valid);
   const end = new Date(b); end.setDate(end.getDate() - 1);
-  $('#volumeList').innerHTML = bars(t) + `<p class="muted sm">${md(a)}–${md(end)} · ${valid.length} 次訓練${cardio ? ` · 有氧 ${fmt1(cardio)} 分` : ''}。單位：組（主要肌群 1、輔助 0.5）</p>`;
+  $('#volumeList').innerHTML = bars(t) + `<p class="muted sm">${md(a)}–${md(end)} · ${valid.length} 次訓練${cardio ? ` · 有氧 ${fmt1(cardio)} 分` : ''}。單位：組（主要肌群 1、次要 0.5）</p>`;
 }
 function renderLoads() {
   const order = [], seen = new Set(), add = (id, eq) => { const k = histKey(id, eq); if (!seen.has(k)) { seen.add(k); order.push({ id, eq }) } };
@@ -1408,16 +1490,17 @@ function pickExercise(cb, currentId) {
 const ytUrl = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
 function muscleChips(x) {
   const e = Object.entries(x.muscles || {});
-  return e.length ? e.sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="mchip ${v >= 1 ? 'main' : ''}">${k}${v >= 1 ? '' : '（輔助）'}</span>`).join('') : `<span class="mchip">${kindFor(x) === 'cardio' ? '有氧' : '—'}</span>`;
+  return e.length ? e.sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="mchip ${v >= 1 ? 'main' : ''}">${k}${v >= 1 ? '' : ' ½'}</span>`).join('') : `<span class="mchip">${kindFor(x) === 'cardio' ? '有氧' : '—'}</span>`;
 }
 function videoLinks(x) {
   return `<div class="row-inline wrap"><a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${ytUrl(x.name.replace(/（.*?）/g, '') + ' 教學')}">▶ 示範影片（中文）</a>${x.en ? `<a class="btn btn-light btn-sm" target="_blank" rel="noopener" href="${ytUrl(x.en + ' proper form')}">▶ English</a>` : ''}</div>`;
 }
 function exerciseDetailHtml(x) {
   const d = x.detail || {}, row = (t, v) => v ? `<div><b>${t}</b>${esc(v)}</div>` : '';
-  const nexts = (x.next || []).filter(n => exDef(n));
+  const nexts = (x.next || []).filter(n => exDef(n)), src = x.source, zh = l => l.map(k => SRC_MUSCLES[k]?.[0] || k).join('、');
   return `${x.en ? `<div class="muted sm">${esc(x.en)}</div>` : ''}<div class="row-inline wrap"><span class="tag">${esc(equip(x.eq)?.name || '')}</span><span class="tag">${UNIT_SHORT[kindFor(x)] || ''}</span>${x.side ? '<span class="tag">單側</span>' : ''}${x.custom ? '<span class="tag">自訂</span>' : ''}</div>
-    <div class="mchips">${muscleChips(x)}</div><div class="ex-info">${row('目標', d.target)}${row('預備', d.setup)}${row('動作', d.steps)}${row('避免', d.mistake)}</div>
+    <div class="mchips">${muscleChips(x)}</div><div class="ex-info">${src ? row('主要', zh(src.primary)) + row('次要', zh(src.secondary) || '—') : row('目標', d.target)}${row('預備', d.setup)}${row('動作', d.steps)}${row('避免', d.mistake)}</div>
+    <div class="src sm muted">${src ? `肌群依據：<a target="_blank" rel="noopener" href="${esc(src.url)}">StrengthLog · ${esc(src.title)}</a>${src.approx ? '（相近動作）' : ''}；動作要點參考該頁並補充一般訓練原則` : x.custom ? '自訂動作：肌群由使用者設定' : '一般訓練原則（未對照外部資料）'}</div>
     ${nexts.length ? `<div class="sm"><b>升階建議：</b>${nexts.map(n => `<button class="link" data-show="${esc(n)}">${esc(exName(n))}</button>`).join('、')}</div>` : ''}${videoLinks(x)}`;
 }
 function showExercise(id) {
@@ -1446,7 +1529,7 @@ function editCustomExercise(id, cb) {
     <label class="lab" id="cxKindWrap">啞鈴記法<select id="cxKind" class="field"><option value="">每手 kg</option><option value="db1" ${x.kind === 'db1' ? 'selected' : ''}>單顆／總 kg</option></select></label></div>
     <div class="grid2"><label class="lab">主要肌群<select id="cxMain" class="field"><option value="">（無／有氧）</option>${MUSCLE_NAMES.map(n => `<option ${n === primary ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label class="lab">無紀錄時起點<input id="cxStart" class="field" type="number" value="${esc(x.start ?? '')}"></label></div>
-    <div class="lab">輔助肌群（算 0.5 組）</div><div class="row-inline wrap">${MUSCLE_NAMES.map(n => `<label class="check sm"><input type="checkbox" class="cxSub" value="${n}" ${x.muscles?.[n] === .5 ? 'checked' : ''}>${n}</label>`).join('')}</div>
+    <div class="lab">次要肌群（算 0.5 組）</div><div class="row-inline wrap">${MUSCLE_NAMES.map(n => `<label class="check sm"><input type="checkbox" class="cxSub" value="${n}" ${x.muscles?.[n] === .5 ? 'checked' : ''}>${n}</label>`).join('')}</div>
     <label class="check"><input id="cxSide" type="checkbox" ${x.side ? 'checked' : ''}> 單側動作（次數記每側）</label>
     <label class="lab">動作說明<textarea id="cxNote" class="field">${esc(x.detail?.steps || '')}</textarea></label>
     <div class="row-end">${id ? '<button class="btn btn-danger btn-sm" id="cxDel">刪除</button>' : ''}<button class="btn btn-primary" id="cxSave">儲存</button></div>`);
@@ -1619,7 +1702,7 @@ function importAiProgram() {
       if (found) id = found.id;
       else {
         id = uid('c_'); const eq = equip(it.equipment) ? it.equipment : 'bw', muscles = {};
-        Object.entries(it.muscles || {}).forEach(([k, v]) => { if (MUSCLE_NAMES.includes(k)) muscles[k] = Number(v) >= 1 ? 1 : .5 });
+        Object.entries(fixMuscles(it.muscles || {}, name)).forEach(([k, v]) => { if (MUSCLE_NAMES.includes(k)) muscles[k] = Number(v) >= 1 ? 1 : .5 });
         state.customExercises[id] = { id, name, eq, muscles, detail: {}, custom: true, ...(equip(eq)?.type === 'cardio' ? { kind: 'cardio' } : {}) }; created.push(name);
       }
     }
@@ -1806,12 +1889,12 @@ const TOUR = [
   { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」，會自動勾選這組完成；休息完按「下一組」。往下捲時，上方會出現小計時列。' },
   { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是依上次表現算出的建議重量。2 組做到次數上限，或 1 組做到上限還有餘力，下次就會建議加重；到器材上限會出現「升階」。' },
   { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和「餘力」（做完還能再做幾下，不確定可以留空），完成就打勾。輸入會自動保存，換手機也接得上。' },
-  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數。' },
+  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」。' },
   { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
   { view: 'program', el: '.prog-bar', title: '課表', text: '可以有多份課表，選中的就是訓練頁使用的那份。「複製」後再修改最安全。' },
   { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
   { view: 'settings', el: '#equipList', title: '器材', text: '勾選你有的器材，並設定重量上限和每次加重的幅度，建議會依這些設定計算。' },
-  { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
+  { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
   { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看，到「設定 → 使用教學」。' },
 ];
 let tourStep = -1;
@@ -2003,6 +2086,7 @@ $('#exerciseList').addEventListener('click', onCardAction);
 $('#sessionNotes').oninput = e => { draft.notes = e.target.value; saveDraft() };
 $('#painFlag').onchange = e => { draft.pain = e.target.checked; saveDraft(); draft.exercises.forEach((_, i) => refreshCard(i)) };
 $('#saveSession').onclick = saveSession;
+$('#addExercise').onclick = addExerciseToday;
 
 $$('[data-mode]').forEach(b => b.onclick = () => startTimer(b.dataset.mode));
 $$('[data-float]').forEach(b => b.onclick = () => { const a = b.dataset.float; a === 'next' ? nextSet() : a === 'pause' ? pauseTimer() : startTimer(a) });
