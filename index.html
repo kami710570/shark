@@ -266,6 +266,21 @@ body.touring .float-timer{display:none}
 .chip-btn.danger{color:var(--warn);margin-left:auto}.warn-text{color:var(--warn)}
 .add-ex{display:block;width:100%;margin:12px 0;border-style:dashed;padding:12px}
 @media (max-width:560px){.ex-actions{gap:5px}.ex-actions .chip-btn{padding:4px 9px}}
+/* 排行榜 */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;margin:4px 0 10px}
+.seg button{border:0;background:none;padding:8px 2px;border-radius:8px;font-weight:800;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.board-sub{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip-btn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.rank-list{display:grid;gap:6px}
+.rank-row{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rank-row.me{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 8%,var(--surface))}
+.rank-row .rn{min-width:0}.rank-row .rn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-row .rn small{display:block;color:var(--muted);font-size:12px}.rank-row .rn small.acct{opacity:.8}
+.rank-row .rv{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}.rank-row .rv small{font-size:12px;color:var(--muted);margin-left:3px;font-weight:600}
+.rk{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;color:var(--muted);background:var(--surface2)}
+.rk1{background:#f5c542;color:#4a3700}.rk2{background:#c9d1d9;color:#2b333b}.rk3{background:#d99a6c;color:#3d2210}
+.tabs{grid-template-columns:repeat(6,1fr)}
 
   </style>
 </head>
@@ -303,7 +318,7 @@ body.touring .float-timer{display:none}
 
     <div id="notice" class="notice hidden"></div>
     <nav class="tabs" aria-label="分頁">
-      <button class="tab active" data-view="train">訓練</button><button class="tab" data-view="stats">統計</button><button class="tab" data-view="history">歷史</button><button class="tab" data-view="program">課表</button><button class="tab" data-view="settings">設定</button>
+      <button class="tab active" data-view="train">訓練</button><button class="tab" data-view="stats">統計</button><button class="tab" data-view="history">歷史</button><button class="tab" data-view="program">課表</button><button class="tab" data-view="board">排行</button><button class="tab" data-view="settings">設定</button>
     </nav>
 
     <section id="trainView" class="view">
@@ -363,7 +378,23 @@ body.touring .float-timer{display:none}
         <h4>貼上 AI 的回覆</h4><textarea id="aiJson" class="field code" placeholder="貼上 AI 產生的 JSON"></textarea><button id="aiImport" class="btn btn-primary btn-sm">匯入成新課表</button></div>
     </section>
 
+    <section id="boardView" class="view hidden">
+      <div class="card pad">
+        <div class="card-h"><h3>排行榜</h3><button id="boardRefresh" class="btn btn-light btn-sm" hidden>立即更新</button></div>
+        <p id="boardMe" class="muted sm"></p>
+        <div id="boardTabs" class="seg"><button data-btab="count">次數</button><button data-btab="bb">槓鈴</button><button data-btab="db">啞鈴</button><button data-btab="bw">自重</button></div>
+        <div id="boardSub" class="board-sub"></div>
+        <div id="boardList" class="rank-list"></div>
+        <p id="boardNote" class="muted sm"></p>
+        <p id="boardWhen" class="muted sm"></p>
+      </div>
+    </section>
+
     <section id="settingsView" class="view hidden">
+      <div class="card pad"><div class="card-h"><h3>暱稱與排行榜</h3><button id="nickEdit" class="btn btn-light btn-sm">改暱稱</button></div>
+        <p>暱稱：<b id="nickName"></b></p>
+        <label class="check"><input id="boardOn" type="checkbox"> 參加排行榜（關閉後其他人看不到你的次數與重量）</label>
+        <p class="muted sm">登入帳號：<span id="acctInfo"></span>（只有你和管理員看得到）</p></div>
       <div id="membersCard" class="card pad hidden"><div class="card-h"><h3>成員</h3></div><div id="memberList"></div></div>
       <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">勾選你有的器材；重量上限與加重幅度會用在進步建議。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>動作庫</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 自訂動作</button></div>
@@ -745,7 +776,7 @@ function sessionForAnalysis(s) {
 // ===== 03 · 進步規則、歷史索引、訓練量 =====
 let state = migrate(SAVED);
 let currentDay = null, timerState = null, HIST = null;
-const invalidate = () => { HIST = null };
+const invalidate = () => { HIST = null; boardSoon() }; // 紀錄有變 → 稍後更新排行榜摘要（沒變不寫）
 
 // 只保留能拿來判斷的組（有次數；舊資料裡混在引體裡的下拉組會被排除）
 function usableSets(e, sets, doneOnly) {
@@ -1046,6 +1077,7 @@ function onSetInput(ev) {
   const el = ev.target, f = el.dataset.f; if (!f) return;
   const card = el.closest('.ex'), row = el.closest('.set'); if (!card || !row) return;
   const i = +card.dataset.i, j = +row.dataset.j, e = draft.exercises[i], x = e.sets[j];
+  if (!draft.startedAt) draft.startedAt = Date.now(); // 排行榜次數：第一次輸入 → 保存的時間
   if (f === 'done') x.done = el.checked;
   else if (f === 'mode') { x.mode = el.value; if (x.mode !== 'assist') x.assist = ''; if (x.mode !== 'weighted') x.load = 0; row.outerHTML = setRowHtml(e, x, j); renderTimer() }
   else if (f === 'assist') x.assist = el.value.trim();
@@ -1826,15 +1858,22 @@ function initMembers() {
   });
 }
 
+// 排行榜暱稱（本人設定）與狀態；排行榜資料 10 分鐘內共用，不另外讀
+function boardLine(uid) {
+  if (!BOARD.list) return '';
+  const d = BOARD.list.find(x => x.uid === uid), over = BOARD.mod.names[uid];
+  if (BOARD.mod.ban[uid]) return ' · 排行榜：已移除';
+  return d ? ` · 排行榜暱稱：${esc(over || d.name || '未命名')}${over ? '（你指定）' : ''}` : ' · 未參加排行榜';
+}
 function renderMembers(fromActivity) {
   if (!SYNC.admin) return;
-  if (!fromActivity) loadActivity();
+  if (!fromActivity) { loadActivity(); loadBoard(false) }
   const b = (act, label, cls = 'btn-light') => `<button class="btn ${cls} btn-sm" data-mact="${act}">${label}</button>`;
-  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.nickname || m.name || m.email)}</b><button class="link sm rename" data-mact="rename">改名</button><small>${m.nickname && m.name ? esc(m.name) + ' · ' : ''}${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}${m.status === 'approved' && m.uid in ACTIVE ? ` · 最近活動：${activeText(ACTIVE[m.uid].t)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
+  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.nickname || m.name || m.email)}</b><button class="link sm rename" data-mact="rename">改名</button><small>${m.nickname && m.name ? esc(m.name) + ' · ' : ''}${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}${m.status === 'approved' && m.uid in ACTIVE ? ` · 最近活動：${activeText(ACTIVE[m.uid].t)}` : ''}${boardLine(m.uid)}</small></div><div class="mem-btns">${btns}</div></div>`;
   const pending = MEMBERS.filter(m => m.status === 'pending'), active = MEMBERS.filter(m => m.status === 'approved'), done = MEMBERS.filter(m => !['pending', 'approved'].includes(m.status));
   let html = '';
   if (pending.length) html += `<div class="mem-h">待審核（${pending.length}）</div>` + pending.map(m => row(m, b('approve', '同意', 'btn-primary') + b('reject', '拒絕') + b('block', '封鎖', 'btn-danger'))).join('');
-  if (active.length) html += `<div class="mem-h">使用中（${active.length}）</div>` + active.map(m => row(m, b('move', '移轉資料') + b('remove', '停用') + b('block', '封鎖', 'btn-danger'))).join('');
+  if (active.length) html += `<div class="mem-h">使用中（${active.length}）</div>` + active.map(m => row(m, (BOARD.mod.ban[m.uid] ? b('unban', '恢復排行') : '') + b('move', '移轉資料') + b('remove', '停用') + b('block', '封鎖', 'btn-danger'))).join('');
   if (done.length) html += `<details class="mem-done"><summary>已處理（${done.length}）</summary>` + done.map(m => row(m,
     b('approve', m.status === 'rejected' ? '改為同意' : '恢復使用') + (m.status === 'blocked' ? b('unblock', '解除封鎖') : b('block', '封鎖', 'btn-danger')) + (m.status === 'moved' || m.status === 'removed' ? b('wipe', '刪除資料', 'btn-danger') : ''))).join('') + '</details>';
   $('#memberList').innerHTML = (html || '<div class="muted sm">還沒有人申請。把網址傳給家人，他們用 Google 登入並送出申請後會出現在這裡。</div>')
@@ -1850,13 +1889,14 @@ async function onMemberClick(ev) {
     if (act === 'rename') return askText('成員暱稱', '暱稱（只顯示在成員清單，留空則用 Google 名稱）', m.nickname || '', v => A.rename(uid, v).then(() => toast('已更新暱稱')).catch(e => toast('操作失敗：' + (e.code || e.message))), true);
     else if (act === 'approve') { await A.set(uid, { status: 'approved' }); toast(`已同意 ${who}`) }
     else if (act === 'reject') { if (!confirm(`拒絕 ${who} 的申請？對方 ${SYNC.cooldownDays} 天後可以重新申請。`)) return; await A.set(uid, { status: 'rejected' }); toast('已拒絕') }
-    else if (act === 'block') { if (!confirm(`封鎖 ${who}？對方無法使用，也不能再申請。之後可以解除。`)) return; await A.set(uid, { status: 'blocked' }); toast('已封鎖') }
-    else if (act === 'remove') { if (!confirm(`停用 ${who}？對方會立刻無法使用，資料保留，之後可以恢復。`)) return; await A.set(uid, { status: 'removed' }); toast('已停用') }
+    else if (act === 'block') { if (!confirm(`封鎖 ${who}？對方無法使用，也不能再申請。之後可以解除。`)) return; await A.set(uid, { status: 'blocked' }); dropBoard(uid); toast('已封鎖') }
+    else if (act === 'remove') { if (!confirm(`停用 ${who}？對方會立刻無法使用，資料保留，之後可以恢復。`)) return; await A.set(uid, { status: 'removed' }); dropBoard(uid); toast('已停用') }
+    else if (act === 'unban') { await unbanBoard(uid) }
     else if (act === 'unblock') { if (!confirm(`解除封鎖 ${who}？對方可以重新送出申請。`)) return; await A.remove(uid); toast('已解除封鎖') }
     else if (act === 'wipe') {
       if (!confirm(`刪除 ${who} 的所有訓練資料？無法復原。`)) return;
       if (prompt('請輸入「刪除」確認') !== '刪除') return;
-      toast('刪除中…'); await A.wipe(uid); toast('已刪除資料');
+      toast('刪除中…'); await A.wipe(uid); dropBoard(uid); toast('已刪除資料');
     }
     else if (act === 'move') openMove(m);
   } catch (e) { console.error(e); toast('操作失敗：' + (e.code || e.message)) }
@@ -1874,10 +1914,16 @@ function openMove(m) {
     try {
       const r = await SYNC.admin.copy(m.uid, t.uid);
       await SYNC.admin.set(t.uid, { status: 'approved' });
-      await SYNC.admin.set(m.uid, { status: 'moved', movedTo: t.email });
+      await SYNC.admin.set(m.uid, { status: 'moved', movedTo: t.email }); dropBoard(m.uid);
       toast(`完成：${r.sessions} 筆訓練已移到 ${t.email}`);
     } catch (e) { console.error(e); toast('移轉失敗：' + (e.code || e.message)) }
   });
+}
+
+// 停用／封鎖／移轉後，把對方從排行榜拿掉（對方已無權限，不會再寫回）
+function dropBoard(uid) {
+  SYNC.board?.save(uid, null).catch(e => console.error('[SHARK board]', e));
+  if (BOARD.list) BOARD.list = BOARD.list.filter(d => d.uid !== uid);
 }
 
 // ===== 06.6 · 使用教學（第一次使用自動出現；設定裡可重看）=====
@@ -1893,6 +1939,7 @@ const TOUR = [
   { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
   { view: 'program', el: '.prog-bar', title: '課表', text: '可以有多份課表，選中的就是訓練頁使用的那份。「複製」後再修改最安全。' },
   { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
+  { view: 'board', el: '#boardTabs', title: '排行榜', text: '和家人朋友比訓練次數，以及槓鈴、啞鈴、自重主要動作的最佳紀錄。暱稱和要不要參加，都可以在「設定」更改。' },
   { view: 'settings', el: '#equipList', title: '器材', text: '勾選你有的器材，並設定重量上限和每次加重的幅度，建議會依這些設定計算。' },
   { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
   { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看，到「設定 → 使用教學」。' },
@@ -2029,6 +2076,223 @@ function backupReminder() {
   else if (!driveReady() && (!last || last < daysAgo(30))) showNotice('已超過 30 天沒有下載備份', '下載', exportJson);
 }
 
+// ===== 06.8 · 暱稱與排行榜 =====
+// 省流量設計：
+// 1. 全部成員的排行資料放在同一份文件 leaderboard/main（每人一欄），看排行只讀 1 份，不管有幾個人
+// 2. 每天固定時段更新（BOARD_HOURS）：同一時段內重開、重整、切換都用手機裡的快取，不再讀雲端
+// 3. 自己的摘要有變才寫，而且兩次寫入至少間隔 30 分鐘（一直改重量也只會寫一次）
+// 4. 自己那一列直接用本機資料，剛練完馬上看得到
+const BOARD_TABS = [
+  { id: 'count', name: '次數' },
+  { id: 'bb', name: '槓鈴', kind: 'plate', unit: 'kg', lifts: [['squat', '深蹲', ['bb_squat']], ['bench', '臥推', ['bb_bench']], ['dl', '硬舉', ['bb_dl', 'bb_sumo_dl']], ['ohp', '站姿肩推', ['bb_ohp']]] },
+  { id: 'db', name: '啞鈴', kind: 'db', unit: 'kg/手', lifts: [['dbbench', '啞鈴臥推', ['bench', 'db_pause_bench']], ['dbohp', '啞鈴肩推', ['ohp']], ['dbrow', '單臂划船', ['one_row']], ['dbsplit', '保加利亞分腿蹲', ['split', 'split_deficit']]] },
+  { id: 'bw', name: '自重', kind: 'bw', reps: true, lifts: [['pull', '引體向上', ['chinup']], ['dip', '雙槓撐體', ['dips']]] },
+];
+const BOARD_LIFT = {}; // 動作 id → { k, tab }
+BOARD_TABS.forEach(t => (t.lifts || []).forEach(([k, , ids]) => ids.forEach(id => BOARD_LIFT[id] = { k, tab: t })));
+const COUNT_MIN_MS = 30 * 60000, E1RM_REPS = 12, BOARD_HOURS = [7, 12, 18, 22], BOARD_WRITE_GAP = 30 * 60000;
+const e1rm = (w, r) => r <= 1 ? w : w * (1 + Math.min(r, E1RM_REPS) / 30); // Epley；超過 12 下以 12 下計（保守）
+const boardSig = x => `${x.d}|${x.w}|${x.r}`;
+// 一次訓練的時間：計時器總時間，或「第一次輸入／開始計時 → 保存」的時間，取較長者
+function sessionSpan(s) {
+  const st = s.startedAt || s.timer?.sessionStartedAt;
+  return Math.max(Number(s.summary?.duration) || 0, st && s.createdAt ? s.createdAt - st : 0);
+}
+
+// 依自己的紀錄算出排行榜摘要；skip = 管理員隱藏的紀錄 {lift: [sig]}
+function boardSummary(skip = {}) {
+  const months = {}, days = new Set(), lifts = {};
+  state.sessions.forEach(s => {
+    if (!s?.date) return;
+    if (sessionSpan(s) >= COUNT_MIN_MS && !days.has(s.date)) { days.add(s.date); const m = s.date.slice(0, 7); months[m] = (months[m] || 0) + 1 }
+    (s.exercises || []).forEach(e => {
+      const hit = BOARD_LIFT[e.id]; if (!hit || e.kind !== hit.tab.kind || e.eq === 'smith') return;
+      (e.sets || []).forEach(x => {
+        if (x.done === false || !hasReps(x)) return;
+        const r = Math.round(Number(x.reps)); if (!(r >= 1 && r <= 100)) return;
+        if (hit.tab.reps) {
+          if (x.mode && x.mode !== 'bw' && x.mode !== 'weighted') return; // 彈力帶輔助、舊版滑輪下拉不算
+          const c = { d: s.date, w: x.mode === 'weighted' ? Number(x.load) || 0 : 0, r }, cur = lifts[hit.k];
+          if (skip[hit.k]?.includes(boardSig(c))) return;
+          if (!cur || r > cur.r || (r === cur.r && c.w > cur.w)) lifts[hit.k] = c;
+        } else {
+          const w = Number(x.load) || 0; if (w <= 0) return;
+          const c = { d: s.date, w, r, e: Math.round(e1rm(w, r) * 2) / 2 }, cur = lifts[hit.k];
+          if (skip[hit.k]?.includes(boardSig(c))) return;
+          if (!cur || c.e > cur.e || (c.e === cur.e && w > cur.w)) lifts[hit.k] = c;
+        }
+      });
+    });
+  });
+  return { v: 1, months, lifts };
+}
+
+// ---------- 更新時段 ----------
+const slotAt = (d, h) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h).getTime();
+function lastSlot(now = Date.now()) { // 最近一次（已過的）更新時間
+  const d = new Date(now), past = BOARD_HOURS.map(h => slotAt(d, h)).filter(t => t <= now);
+  return past.length ? past.at(-1) : slotAt(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1), BOARD_HOURS.at(-1));
+}
+function nextSlot(now = Date.now()) {
+  const d = new Date(now), up = BOARD_HOURS.map(h => slotAt(d, h)).find(t => t > now);
+  return up || slotAt(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1), BOARD_HOURS[0]);
+}
+const hm = t => new Date(t).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+// ---------- 同步自己的摘要 ----------
+var boardReady = false; // var：避免啟動過程中 invalidate() 先被呼叫時出錯
+let boardTimer = null;
+const BOARD = { list: null, at: 0, mod: { names: {}, hide: {}, ban: {} }, tab: 'count', lift: {}, period: 'month', loading: false };
+const lsGet = k => { try { return localStorage.getItem(k) } catch { return null } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v) } catch { } };
+const boardKey = (x = '') => 'shark-board-' + (SYNC.board?.uid || '') + x;
+const myNick = () => String(state.prefs.nickname ?? SYNC.board?.name ?? '').trim().slice(0, 20) || '未命名';
+function boardSoon() { if (!boardReady || !SYNC.board) return; clearTimeout(boardTimer); boardTimer = setTimeout(boardPush, 3000) }
+async function boardPush(force) {
+  const B = SYNC.board; if (!B) return;
+  try {
+    if (state.prefs.boardOff) { if (lsGet(boardKey()) !== 'off') { await B.save(B.uid, null); lsSet(boardKey(), 'off') } return } // 退出：立刻移除
+    const raw = myNick() + '\n' + JSON.stringify(boardSummary());
+    if (!force && lsGet(boardKey()) === raw) return; // 沒變就不寫
+    const wait = (Number(lsGet(boardKey('-t'))) || 0) + BOARD_WRITE_GAP - Date.now();
+    if (wait > 0 && !force) { clearTimeout(boardTimer); boardTimer = setTimeout(boardPush, wait + 1000); return } // 30 分鐘內已寫過 → 到時再寫最新的
+    const s = boardSummary(BOARD.mod.hide[B.uid] || {});
+    await B.save(B.uid, JSON.stringify({ n: myNick(), m: s.months, l: s.lifts }));
+    lsSet(boardKey(), raw); lsSet(boardKey('-t'), String(Date.now()));
+  } catch (e) { console.error('[SHARK board]', e) }
+}
+
+// ---------- 讀取：每個時段最多 1 次（重整網頁也用快取）----------
+function applyBoard(data, at) {
+  let mod = {}; try { mod = JSON.parse(data._mod || '{}') || {} } catch { }
+  BOARD.mod = { names: mod.names || {}, hide: mod.hide || {}, ban: mod.ban || {} };
+  BOARD.list = Object.entries(data).filter(([k]) => k !== '_mod').map(([uid, j]) => { let x = {}; try { x = JSON.parse(j) || {} } catch { } return { uid, name: x.n || '', months: x.m || {}, lifts: x.l || {} } });
+  BOARD.at = at;
+}
+async function loadBoard(force) {
+  if (!SYNC.board) return renderBoard();
+  if (!BOARD.list) { try { const c = JSON.parse(lsGet(boardKey('-cache')) || 'null'); if (c?.data) applyBoard(c.data, c.at) } catch { } }
+  const fresh = BOARD.list && BOARD.at >= lastSlot();
+  if (fresh && !(force && SYNC.board.admin)) return renderBoard();
+  if (force && Date.now() - BOARD.at < 60000) { renderBoard(); return toast('剛更新過，1 分鐘後可以再更新') }
+  if (BOARD.loading) return; BOARD.loading = true; renderBoard();
+  try {
+    const data = await SYNC.board.get(), at = Date.now();
+    applyBoard(data, at); lsSet(boardKey('-cache'), JSON.stringify({ at, data }));
+    // 管理員隱藏了我的紀錄 → 重新計算，讓次佳紀錄出現
+    const mine = BOARD.list.find(d => d.uid === SYNC.board.uid), hide = BOARD.mod.hide[SYNC.board.uid] || {};
+    if (mine && Object.entries(hide).some(([k, sigs]) => mine.lifts[k] && sigs.includes(boardSig(mine.lifts[k])))) boardPush(true);
+  } catch (e) { console.error('[SHARK board]', e); toast('讀取排行榜失敗：' + (e.code || e.message)) }
+  BOARD.loading = false;
+  if (view === 'board') renderBoard();
+  if (view === 'settings') renderMembers(true);
+}
+// 排行用的資料：其他人用雲端摘要，自己用本機即時計算
+function boardEntries() {
+  const me = SYNC.board?.uid, mod = BOARD.mod;
+  const list = (BOARD.list || []).filter(d => d.uid !== me && !mod.ban[d.uid]);
+  if (me && !state.prefs.boardOff && !mod.ban[me]) { const s = boardSummary(mod.hide[me] || {}); list.push({ uid: me, name: myNick(), months: s.months, lifts: s.lifts, me: true }) }
+  return list.map(d => ({ ...d, show: mod.names[d.uid] || d.name || '未命名' }));
+}
+const ymd = d => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '';
+function renderBoard() {
+  if (!$('#boardView')) return;
+  const tab = BOARD_TABS.find(t => t.id === BOARD.tab) || BOARD_TABS[0];
+  $$('#boardTabs [data-btab]').forEach(b => b.classList.toggle('on', b.dataset.btab === tab.id));
+  const off = !!state.prefs.boardOff;
+  $('#boardMe').innerHTML = off ? '你目前<b>沒有參加</b>排行榜，別人看不到你的資料。<button class="link" data-bact="join">參加</button>'
+    : `你在排行榜上顯示為「<b>${esc(BOARD.mod.names[SYNC.board?.uid] || myNick())}</b>」<button class="link" data-bact="nick">改暱稱</button>`;
+  let sub, rows, note;
+  const all = boardEntries();
+  if (tab.id === 'count') {
+    const P = [['month', '本月'], ['year', '今年'], ['all', '全部']], period = BOARD.period, ym = today().slice(0, 7), y = today().slice(0, 4);
+    sub = P.map(([k, n]) => `<button class="chip-btn ${k === period ? 'on' : ''}" data-bper="${k}">${n}</button>`).join('');
+    const val = d => Object.entries(d.months).reduce((n, [m, c]) => n + (period === 'all' || (period === 'year' ? m.startsWith(y) : m === ym) ? c : 0), 0);
+    rows = all.map(d => ({ d, v: val(d), text: `${val(d)}`, unit: '次', small: '' })).filter(r => r.v > 0);
+    note = '一次訓練要 30 分鐘以上才算（計時器時間，或第一次輸入到保存的時間），同一天只算 1 次。';
+  } else {
+    const lift = tab.lifts.find(l => l[0] === BOARD.lift[tab.id]) || tab.lifts[0];
+    sub = tab.lifts.map(([k, n]) => `<button class="chip-btn ${k === lift[0] ? 'on' : ''}" data-blift="${k}">${n}</button>`).join('');
+    const hide = uid => BOARD.mod.hide[uid]?.[lift[0]] || [];
+    rows = all.map(d => ({ d, x: d.lifts[lift[0]] })).filter(r => r.x && !hide(r.d.uid).includes(boardSig(r.x))).map(({ d, x }) => tab.reps
+      ? { d, x, v: x.r * 1000 + x.w, text: `${x.r}`, unit: '下', small: `${x.w ? `負重 +${fmt1(x.w)} kg · ` : ''}${ymd(x.d)}` }
+      : { d, x, v: x.e, text: fmt1(x.e), unit: tab.unit, small: `實際 ${fmt1(x.w)} ${tab.unit} × ${x.r} · ${ymd(x.d)}` });
+    note = tab.reps ? '單組最多下數（自重或負重，不含彈力帶輔助）。'
+      : `估算 1RM＝重量 ×（1＋次數÷30），超過 ${E1RM_REPS} 下以 ${E1RM_REPS} 下計；只算自由${tab.id === 'bb' ? '槓鈴（不含史密斯）' : '啞鈴，重量為每手'}。`;
+  }
+  rows.sort((a, b) => b.v - a.v);
+  let rank = 0, prev = null;
+  const admin = SYNC.board?.admin, acct = uid => { const m = MEMBERS.find(x => x.uid === uid); return uid === SYNC.board?.uid ? SYNC.email : m ? `${m.nickname || m.name || ''} · ${m.email}` : '' };
+  const html = rows.map((r, i) => {
+    if (r.v !== prev) { rank = i + 1; prev = r.v }
+    return `<div class="rank-row ${r.d.me ? 'me' : ''}" data-uid="${esc(r.d.uid)}"><span class="rk rk${rank}">${rank}</span>
+      <div class="rn"><b>${esc(r.d.show)}${r.d.me ? ' <span class="tag">你</span>' : ''}</b>${r.small ? `<small>${esc(r.small)}</small>` : ''}${admin && acct(r.d.uid) ? `<small class="acct">${esc(acct(r.d.uid))}</small>` : ''}</div>
+      <b class="rv">${r.text}<small>${r.unit}</small></b>${admin ? `<button class="icon-btn" data-bact="mod" aria-label="管理">⋯</button>` : ''}</div>`;
+  }).join('');
+  $('#boardSub').innerHTML = sub;
+  $('#boardList').innerHTML = BOARD.loading && !BOARD.list ? '<div class="empty">讀取中…</div>' : html || '<div class="empty">還沒有人有這項紀錄</div>';
+  $('#boardNote').textContent = note;
+  $('#boardWhen').textContent = `每天 ${BOARD_HOURS.map(h => h + ':00').join('、')} 更新${BOARD.at ? `，目前是 ${hm(BOARD.at)} 的資料，下次 ${hm(nextSlot())}` : ''}。你自己那一列即時更新。`;
+  $('#boardRefresh').hidden = !SYNC.board?.admin;
+}
+function onBoardClick(ev) {
+  const t = ev.target.closest('[data-btab],[data-bper],[data-blift],[data-bact]'); if (!t) return;
+  if (t.dataset.btab) { BOARD.tab = t.dataset.btab; return renderBoard() }
+  if (t.dataset.bper) { BOARD.period = t.dataset.bper; return renderBoard() }
+  if (t.dataset.blift) { BOARD.lift[BOARD.tab] = t.dataset.blift; return renderBoard() }
+  const a = t.dataset.bact;
+  if (a === 'nick') return editNickname();
+  if (a === 'join') { state.prefs.boardOff = false; persist('已參加排行榜'); boardSoon(); renderBoard(); return }
+  if (a === 'mod') return openBoardMod(t.closest('.rank-row').dataset.uid);
+}
+function editNickname(after) {
+  askText('暱稱', '顯示在排行榜上的名字（最多 20 字；留空＝使用 Google 名稱）', state.prefs.nickname ?? SYNC.board?.name ?? '', v => {
+    if (v.trim()) state.prefs.nickname = v.trim().slice(0, 20); else delete state.prefs.nickname;
+    persist('已更新暱稱'); boardSoon();
+    if (view === 'board') renderBoard(); if (view === 'settings') renderProfile(); after?.();
+  }, true);
+}
+
+// ---------- 管理員：隱藏可疑紀錄、改暱稱、移出排行 ----------
+function openBoardMod(uid) {
+  const d = boardEntries().find(x => x.uid === uid); if (!d) return;
+  const tab = BOARD_TABS.find(t => t.id === BOARD.tab), lift = tab.lifts ? (tab.lifts.find(l => l[0] === BOARD.lift[tab.id]) || tab.lifts[0]) : null;
+  const x = lift && d.lifts[lift[0]], m = MEMBERS.find(y => y.uid === uid), hidden = Object.values(BOARD.mod.hide[uid] || {}).flat().length;
+  openDialog('排行榜管理', `<p><b>${esc(d.show)}</b><br><span class="muted sm">${esc(uid === SYNC.board.uid ? SYNC.email : m ? `${m.name || ''} · ${m.email}` : uid)}${BOARD.mod.names[uid] ? `<br>本人設定的暱稱：${esc(d.name)}` : ''}</span></p>
+    <div class="pick-list">
+      ${x ? `<button class="pick" data-m="hide"><b>隱藏這筆${esc(lift[1])}紀錄</b><small>${tab.reps ? `${x.r} 下` : `${fmt1(x.w)} × ${x.r}`} · ${esc(x.d)}；對方下次同步後會改顯示次佳紀錄</small></button>` : ''}
+      <button class="pick" data-m="name"><b>改排行榜暱稱</b><small>${BOARD.mod.names[uid] ? '目前由你指定；留空恢復本人設定' : '覆蓋本人設定的暱稱'}</small></button>
+      ${hidden ? `<button class="pick" data-m="unhide"><b>恢復被隱藏的紀錄（${hidden} 筆）</b></button>` : ''}
+      <button class="pick" data-m="ban"><b>從排行榜移除</b><small>資料不刪除，只是不顯示</small></button>
+    </div>`);
+  $$('#dlgBody [data-m]').forEach(b => b.onclick = async () => {
+    const mod = BOARD.mod, act = b.dataset.m;
+    if (act === 'name') { closeDialog(); return askText('排行榜暱稱', '留空＝使用本人設定的暱稱', mod.names[uid] || '', async v => { v ? mod.names[uid] = v.slice(0, 20) : delete mod.names[uid]; await saveBoardMod('已更新暱稱') }, true) }
+    if (act === 'hide') { ((mod.hide[uid] ||= {})[lift[0]] ||= []).push(boardSig(x)) }
+    if (act === 'unhide') delete mod.hide[uid];
+    if (act === 'ban') { if (!confirm(`把「${d.show}」移出排行榜？之後可以在「設定 → 成員」恢復。`)) return; mod.ban[uid] = true }
+    closeDialog(); await saveBoardMod(act === 'hide' ? '已隱藏這筆紀錄' : act === 'ban' ? '已移出排行榜' : '已恢復');
+  });
+}
+async function saveBoardMod(msg) {
+  try {
+    const json = JSON.stringify(BOARD.mod); await SYNC.board.saveMod(json);
+    try { const c = JSON.parse(lsGet(boardKey('-cache')) || 'null'); if (c?.data) { c.data._mod = json; lsSet(boardKey('-cache'), JSON.stringify(c)) } } catch { }
+    toast(msg);
+  }
+  catch (e) { console.error(e); toast('操作失敗：' + (e.code || e.message)) }
+  if (view === 'board') renderBoard(); if (view === 'settings') renderMembers(true);
+}
+async function unbanBoard(uid) { delete BOARD.mod.ban[uid]; await saveBoardMod('已恢復到排行榜') }
+
+// ---------- 設定頁：暱稱與參加 ----------
+function renderProfile() {
+  if (!$('#nickName')) return;
+  $('#nickName').textContent = myNick();
+  $('#boardOn').checked = !state.prefs.boardOff;
+  $('#acctInfo').textContent = `${SYNC.board?.name ? SYNC.board.name + ' · ' : ''}${SYNC.email}`;
+}
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400) }
@@ -2037,7 +2301,7 @@ function applyTheme() {
   $('#themeToggle').textContent = state.prefs.theme === 'dark' ? '☀' : '☾';
   try { localStorage.setItem('shark-theme', state.prefs.theme) } catch { }
 }
-const VIEWS = { train: 'trainView', stats: 'analyticsView', history: 'historyView', program: 'programView', settings: 'settingsView' };
+const VIEWS = { train: 'trainView', stats: 'analyticsView', history: 'historyView', program: 'programView', board: 'boardView', settings: 'settingsView' };
 let view = 'train';
 function switchView(v) {
   view = v;
@@ -2051,7 +2315,8 @@ function renderView() {
   if (view === 'stats') renderAnalytics();
   if (view === 'history') renderHistory();
   if (view === 'program') renderProgram();
-  if (view === 'settings') { renderSettings(); renderMembers() }
+  if (view === 'board') loadBoard(false);
+  if (view === 'settings') { renderSettings(); renderProfile(); renderMembers() }
 }
 function renderAll() { applyTheme(); renderStats(); renderView() }
 
@@ -2151,6 +2416,11 @@ function onDayChange() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onDayChange() });
 window.addEventListener('focus', onDayChange);
 $('#tourStart').onclick = startTour;
+$('#boardView').addEventListener('click', onBoardClick);
+$('#boardRefresh').onclick = () => loadBoard(true);
+$('#nickEdit').onclick = () => editNickname();
+$('#boardOn').onchange = e => { state.prefs.boardOff = !e.target.checked; persist(e.target.checked ? '已參加排行榜' : '已退出排行榜，其他人看不到你的資料'); boardSoon() };
+boardReady = true; boardSoon();
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
 if (!state.prefs.tourDone && !state.sessions.length) setTimeout(startTour, 700);
@@ -2243,6 +2513,12 @@ async function firebaseBackend(cfg) {
     },
     async write(uid, ops) {
       await commit(ops.map(o => ({ path: ['users', uid, o.kind, o.id], data: o.json == null ? null : { json: o.json, updatedAt: F.serverTimestamp() } })));
+    },
+    // --- 排行榜：全部成員放在同一份文件，每人一欄；只在固定時段讀，不即時監聽 ---
+    board: {
+      async get() { const d = await F.getDoc(F.doc(db, 'leaderboard', 'main')); return d.exists() ? d.data() : {} },
+      save(uid, json) { return F.setDoc(F.doc(db, 'leaderboard', 'main'), { [uid]: json == null ? F.deleteField() : json }, { merge: true }) },
+      saveMod(json) { return F.setDoc(F.doc(db, 'leaderboard', 'main'), { _mod: json }, { merge: true }) },
     },
     // --- 使用權限 ---
     // 以伺服器規則為準：只有管理員能列出 access 名單（離線時一律視為否）
@@ -2405,13 +2681,14 @@ function startApp() {
   S.remote = null;
   if (S.isAdmin && backend.admin) SYNC.admin = { ...backend.admin, me: S.uid };
   SYNC.email = S.user?.email || '';
+  if (backend.board) SYNC.board = { ...backend.board, uid: S.uid, name: S.user?.name || '', admin: !!S.isAdmin };
   S.app = window.SHARK_START(saved, SYNC);
   hideGate(); setStatus();
   if (isEmpty) setTimeout(() => S.app.welcomeEmpty(), 400);
   flush();
 }
 
-const SYNC = { persist: schedule, flush, admin: null, cooldownDays: COOLDOWN_DAYS, email: '' };
+const SYNC = { persist: schedule, flush, admin: null, board: null, cooldownDays: COOLDOWN_DAYS, email: '' };
 const isAdminUser = u => !!u && !!ADMIN && u.email === ADMIN && u.verified !== false;
 
 function enterApp() {
