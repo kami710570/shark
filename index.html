@@ -2129,14 +2129,27 @@ window.addEventListener('beforeunload', () => { if (timerState?.active) { closeA
 initMembers();
 renderAll();
 // 每天第一次開啟：整理資料、提醒備份與舊草稿
-setTimeout(() => {
+function dailyCheck() {
   const r = maintain(false); backupReminder(); if (!r) return;
   const msgs = [];
   if (r.sessions || r.metrics) msgs.push(`已封存 ${r.sessions + r.metrics} 筆舊紀錄`);
   const stale = staleDrafts().length; if (stale) msgs.push(`有 ${stale} 份超過 ${STALE_DRAFT_DAYS} 天未保存的草稿，可到「設定」清除`);
   if (msgs.length) toast(msgs.join('；'));
   if (view === 'settings') renderSettings();
-}, 1500);
+}
+setTimeout(dailyCheck, 1500);
+// 網頁一直開著跨日（手機沒關分頁）：回到畫面時換成今天；計時中或昨天還有沒保存的輸入就不動
+let lastToday = today();
+function onDayChange() {
+  const t = today(); if (t === lastToday) return;
+  const prev = lastToday; lastToday = t;
+  renderStats(); dailyCheck();
+  if (timerState?.active || $('#sessionDate').value !== prev) return;
+  if (draftHasData(draft)) return toast('已經跨日：昨天的訓練還沒保存，記得按「完成並保存」');
+  switchDraft(() => { $('#sessionDate').value = t; currentDay = nextDayId() || currentDay; initDaySelect() });
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onDayChange() });
+window.addEventListener('focus', onDayChange);
 $('#tourStart').onclick = startTour;
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
