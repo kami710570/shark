@@ -25,7 +25,7 @@ service cloud.firestore {
     // 每筆資料的格式與大小限制（避免異常的大量資料）
     function validDoc(kind) {
       let d = request.resource.data;
-      return kind in ['meta', 'drafts', 'sessions', 'metrics']
+      return kind in ['meta', 'drafts', 'sessions', 'metrics', 'archive']
         && d.keys().hasOnly(['json', 'updatedAt'])
         && d.json is string && d.json.size() < 300000
         && d.updatedAt == request.time;

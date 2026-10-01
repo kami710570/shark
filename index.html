@@ -371,8 +371,8 @@ body.touring .float-timer{display:none}
           <li><b>自重</b>同一條彈力帶 2 組達上限 → 換較輕的帶；自重達標 → 負重或升階。</li>
           <li><b>餘力</b>做完還能再做幾下（RIR）。例如上限 12 下：做 12 下、還能再 1 下 → 達標；做 11 下就算還能再 3 下也不算。不確定就留空。</li>
         </ul></div>
-      <div class="card pad"><h3>資料</h3><p class="muted sm">資料會自動同步到你的帳號。仍建議定期下載備份。</p>
-        <div class="row-inline wrap"><button id="exportJson" class="btn btn-light btn-sm">下載備份</button><button id="exportCsv" class="btn btn-light btn-sm">下載 CSV</button><label class="btn btn-light btn-sm" for="importJson">匯入備份</label><input id="importJson" class="hidden" type="file" accept="application/json,.json"><button id="clearDrafts" class="btn btn-light btn-sm">清除舊草稿</button><button id="resetAll" class="btn btn-danger btn-sm">清除全部資料</button></div></div>
+      <div class="card pad"><h3>資料</h3><p class="muted sm">資料會自動同步到你的帳號。每天第一次開啟時會自動整理：120 天前的紀錄打包封存（內容都保留，統計與建議照常），沒有輸入的過期草稿會刪除，讓每次開啟的讀取量維持穩定。</p><p id="storageInfo" class="muted sm"></p>
+        <div class="row-inline wrap"><button id="exportJson" class="btn btn-light btn-sm">下載備份</button><button id="exportCsv" class="btn btn-light btn-sm">下載 CSV</button><label class="btn btn-light btn-sm" for="importJson">匯入備份</label><input id="importJson" class="hidden" type="file" accept="application/json,.json"><button id="runMaint" class="btn btn-light btn-sm">立即整理</button><button id="clearDrafts" class="btn btn-light btn-sm">清除舊草稿</button><button id="resetAll" class="btn btn-danger btn-sm">清除全部資料</button></div></div>
     </section>
   </main>
 
@@ -837,6 +837,46 @@ function muscleTotals(sessions) {
     Object.entries(mus).forEach(([k, w]) => { if (k in t) t[k] += count * w });
   }));
   return { t, cardio };
+}
+
+// ===== 03.5 · 定期整理：避免資料越存越多、每次開啟越讀越多 =====
+// 1. 120 天前的訓練紀錄 → 每月打包成一份封存（內容保留；只去掉編輯備份與計時的原始時間戳）
+// 2. 120 天前的身體數據 → 每年打包成一份
+// 3. 沒有任何輸入的過期草稿 → 刪除；有輸入的舊草稿只提醒，不自動刪
+const ARCHIVE_DAYS = 120, ARCHIVE_MAX = 200000, STALE_DRAFT_DAYS = 14;
+const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toLocaleDateString('sv-SE') };
+
+function compactSession(s) {
+  delete s.editBackups; delete s.legacyRawBackup; delete s.recommendations;
+  if (s.timer) s.timer = { segments: (s.timer.segments || []).map(g => ({ type: g.type, duration: g.duration, exId: g.exId, setIndex: g.setIndex })), active: null };
+  return s;
+}
+const draftHasData = d => !!(d?.notes || (d?.timer?.segments || []).length || (d?.exercises || []).some(e => (e.sets || []).some(x => hasReps(x) || x.dur)));
+
+function maintain(force) {
+  const t = today(); if (!force && state.prefs.lastMaint === t) return null;
+  const cut = daysAgo(ARCHIVE_DAYS), out = { sessions: 0, metrics: 0, drafts: 0 };
+  state.sessions.forEach(s => { if (!s._arch && s.date && s.date < cut) { compactSession(s); s._arch = 's-' + s.date.slice(0, 7); out.sessions++ } });
+  state.bodyMetrics.forEach(x => { if (!x._arch && x.date && x.date < cut) { x._arch = 'm-' + x.date.slice(0, 4); out.metrics++ } });
+  // 單一封存檔太大時分成多份
+  const groups = {};
+  [...state.sessions, ...state.bodyMetrics].forEach(x => { if (x._arch) (groups[x._arch.replace(/_\d+$/, '')] ||= []).push(x) });
+  Object.entries(groups).forEach(([base, items]) => {
+    if (JSON.stringify(items).length <= ARCHIVE_MAX) { items.forEach(x => x._arch = base); return }
+    let n = 1, size = 0;
+    items.sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach(x => { const len = JSON.stringify(x).length; if (size + len > ARCHIVE_MAX) { n++; size = 0 } size += len; x._arch = `${base}_${n}` });
+  });
+  Object.keys(state.drafts).forEach(k => { const d = state.drafts[k], date = d?.date || k.split('_').pop(); if (date < t && !draftHasData(d) && !(timerState?.active && k === draftKey())) { delete state.drafts[k]; out.drafts++ } });
+  state.prefs.lastMaint = t;
+  invalidate(); persist();
+  return out;
+}
+const staleDrafts = () => Object.keys(state.drafts).filter(k => (state.drafts[k]?.date || k.split('_').pop()) < daysAgo(STALE_DRAFT_DAYS));
+function storageSummary() {
+  const arch = new Set([...state.sessions, ...state.bodyMetrics].filter(x => x._arch).map(x => x._arch));
+  const recentS = state.sessions.filter(s => !s._arch).length, recentM = state.bodyMetrics.filter(x => !x._arch).length;
+  return { recentS, archS: state.sessions.length - recentS, recentM, archM: state.bodyMetrics.length - recentM, files: arch.size, drafts: Object.keys(state.drafts).length,
+    perOpen: 1 + recentS + recentM + arch.size + Object.keys(state.drafts).length };
 }
 
 // ===== 04 · 訓練頁：草稿、組數輸入、計時器、保存 =====
@@ -1316,7 +1356,7 @@ function saveEdit(id, card) {
   fixed.summary = { ...(fixed.summary || {}), total: all.length, done: all.filter(x => x.done).length };
   fixed.plannedSets = Object.fromEntries(fixed.exercises.map(e => [e.id, e.sets.length]));
   const f = findDay(fixed.day); if (f) { fixed.program = f.program.id; fixed.dayLabel = f.day.label; fixed.dayTitle = f.day.title }
-  fixed.editBackups = [...(raw.editBackups || []), { editedAt: Date.now(), date: raw.date, day: raw.day, createdAt: raw.createdAt, pain: raw.pain, notes: raw.notes, exercises: raw.exercises, summary: raw.summary }].slice(-3);
+  if (!fixed._arch) fixed.editBackups = [...(raw.editBackups || []), { editedAt: Date.now(), date: raw.date, day: raw.day, createdAt: raw.createdAt, pain: raw.pain, notes: raw.notes, exercises: raw.exercises, summary: raw.summary }].slice(-3);
   if (src._legacy) { fixed.legacyRepair = { status: 'manual', repairedAt: Date.now() }; fixed.legacyRawBackup = raw.legacyRawBackup || { exercises: raw.exercises, summary: raw.summary } }
   state.sessions[idx] = fixed; invalidate(); persist('已更新，統計與建議已重算'); renderHistory(); renderStats();
 }
@@ -1598,6 +1638,8 @@ function renderSettings() {
   }).join('');
   renderLibrary();
   const old = oldDraftKeys().length; $('#clearDrafts').textContent = `清除舊草稿（${old}）`; $('#clearDrafts').disabled = !old;
+  const sm = storageSummary();
+  $('#storageInfo').innerHTML = `近期訓練 <b>${sm.recentS}</b> 筆、已封存 <b>${sm.archS}</b> 筆（${sm.files} 個封存檔）、草稿 <b>${sm.drafts}</b> 份 · 每次開啟約讀取 <b>${sm.perOpen}</b> 筆<br>上次下載備份：<b>${state.prefs.lastBackup || '尚未下載'}</b>`;
 }
 function onEquipInput(ev) {
   const row = ev.target.closest('.eq-row'); if (!row) return;
@@ -1623,10 +1665,10 @@ function addEquipment() {
     state.equipment.push({ id: uid('eq'), name, type, owned: true, ...base }); persist('已新增器材'); closeDialog(); renderSettings();
   };
 }
-function oldDraftKeys() { const cut = new Date(); cut.setDate(cut.getDate() - 7); const c = cut.toLocaleDateString('sv-SE'); return Object.keys(state.drafts).filter(k => (state.drafts[k]?.date || k.split('_').pop()) < c) }
+function oldDraftKeys() { return staleDrafts() }
 
 function download(name, type, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) }
-function exportJson() { download(`SHARK_備份_${today()}.json`, 'application/json', JSON.stringify(state, null, 1)); toast('已下載備份') }
+function exportJson() { state.prefs.lastBackup = today(); persist(); download(`SHARK_備份_${today()}.json`, 'application/json', JSON.stringify(state, null, 1)); toast('已下載備份'); renderSettings() }
 function exportCsv() {
   const rows = [['日期', '訓練日', '動作', '器材', '組', '重量／模式', '次數', '餘力(RIR)', '完成', '分鐘', '檔位', '距離 km', '心率', '動作秒', '組間秒', '組內秒', '不適', '備註']];
   cleanSessions().valid.forEach(s => (s.exercises || []).forEach(e => (e.sets || []).forEach((x, i) => {
@@ -1896,8 +1938,9 @@ $('#libList').onclick = e => { const b = e.target.closest('[data-show]'); if (b)
 $('#customAdd').onclick = () => editCustomExercise(null);
 $('#exportJson').onclick = exportJson; $('#exportCsv').onclick = exportCsv;
 $('#importJson').onchange = e => { const f = e.target.files[0]; if (f) importJson(f); e.target.value = '' };
-$('#clearDrafts').onclick = () => { const ks = oldDraftKeys(); if (!ks.length || !confirm(`刪除 ${ks.length} 份 7 天前的未完成草稿？`)) return; ks.forEach(k => delete state.drafts[k]); persist('已清除'); renderSettings() };
+$('#clearDrafts').onclick = () => { const ks = oldDraftKeys(); if (!ks.length || !confirm(`刪除 ${ks.length} 份超過 ${STALE_DRAFT_DAYS} 天的未保存草稿？`)) return; ks.forEach(k => delete state.drafts[k]); persist('已清除'); renderSettings() };
 $('#resetAll').onclick = resetAll;
+$('#runMaint').onclick = () => { const r = maintain(true); toast(`整理完成：封存 ${r.sessions + r.metrics} 筆、刪除空白草稿 ${r.drafts} 份`); renderSettings() };
 $('#memberList').onclick = onMemberClick;
 $('#dlgClose').onclick = closeDialog;
 $('#dlg').addEventListener('click', e => { if (e.target === $('#dlg')) closeDialog() });
@@ -1906,6 +1949,16 @@ window.addEventListener('beforeunload', () => { if (timerState?.active) { closeA
 
 initMembers();
 renderAll();
+// 每天第一次開啟：整理資料、提醒備份與舊草稿
+setTimeout(() => {
+  const r = maintain(false); if (!r) return;
+  const msgs = [];
+  if (r.sessions || r.metrics) msgs.push(`已封存 ${r.sessions + r.metrics} 筆舊紀錄`);
+  const stale = staleDrafts().length; if (stale) msgs.push(`有 ${stale} 份超過 ${STALE_DRAFT_DAYS} 天未保存的草稿，可到「設定」清除`);
+  const lb = state.prefs.lastBackup; if (state.sessions.length && (!lb || lb < daysAgo(30))) msgs.push('已超過 30 天沒有下載備份');
+  if (msgs.length) toast(msgs.join('；'));
+  if (view === 'settings') renderSettings();
+}, 1500);
 $('#tourStart').onclick = startTour;
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
@@ -1924,7 +1977,7 @@ return {
   <script type="module">
 // ===== SHARK 雲端同步（Firebase Auth + Firestore）＋ 使用權限 =====
 const FIREBASE_VERSION = '11.10.0';
-const KINDS = ['meta', 'drafts', 'sessions', 'metrics'];
+const KINDS = ['meta', 'drafts', 'sessions', 'metrics', 'archive'];
 const COOLDOWN_DAYS = 7;
 const q = s => document.querySelector(s);
 const enc = id => encodeURIComponent(String(id)).replace(/\./g, '%2E');
@@ -2046,8 +2099,11 @@ function stateToMap(st) {
   const m = new Map();
   const { sessions = [], drafts = {}, bodyMetrics = [], ...meta } = st;
   m.set(pathOf('meta', 'main'), JSON.stringify(meta));
-  sessions.forEach(s => m.set(pathOf('sessions', enc(s.id)), JSON.stringify(s)));
-  bodyMetrics.forEach(x => m.set(pathOf('metrics', enc(x.id)), JSON.stringify(x)));
+  // 封存：舊紀錄打包成每月（訓練）／每年（身體數據）一份，每次開啟只多讀幾筆
+  const arch = {};
+  sessions.forEach(s => s._arch ? (arch[s._arch] ||= []).push(s) : m.set(pathOf('sessions', enc(s.id)), JSON.stringify(s)));
+  bodyMetrics.forEach(x => x._arch ? (arch[x._arch] ||= []).push(x) : m.set(pathOf('metrics', enc(x.id)), JSON.stringify(x)));
+  Object.entries(arch).forEach(([id, items]) => m.set(pathOf('archive', enc(id)), JSON.stringify({ items: items.slice().sort((a, b) => String(a.id).localeCompare(String(b.id))) })));
   Object.entries(drafts).forEach(([k, v]) => m.set(pathOf('drafts', enc(k)), JSON.stringify(v)));
   return m;
 }
@@ -2121,9 +2177,19 @@ function onDocs(kind, changes, meta) {
     if (c.json == null) S.synced.delete(p); else S.synced.set(p, c.json);
     any = true;
     if (kind === 'meta') { if (obj) { const { sessions, drafts, bodyMetrics, ...m } = obj; Object.assign(st, m) } flags.meta = true }
+    else if (kind === 'archive') {
+      // 先移除這個封存檔原本的內容，再放入新的
+      const isS = id.startsWith('s-');
+      if (isS) st.sessions = st.sessions.filter(x => x._arch !== id); else st.bodyMetrics = st.bodyMetrics.filter(x => x._arch !== id);
+      (obj?.items || []).forEach(it => {
+        const arr = isS ? st.sessions : st.bodyMetrics, i = arr.findIndex(x => String(x.id) === String(it.id));
+        if (i >= 0) arr[i] = it; else arr.push(it);
+      });
+      flags[isS ? 'sessions' : 'metrics'] = true;
+    }
     else if (kind === 'sessions' || kind === 'metrics') {
       const arr = kind === 'sessions' ? st.sessions : st.bodyMetrics, i = arr.findIndex(x => String(x.id) === id);
-      if (obj) { i < 0 ? arr.push(obj) : (arr[i] = obj) } else if (i >= 0) arr.splice(i, 1);
+      if (obj) { i < 0 ? arr.push(obj) : (arr[i] = obj) } else if (i >= 0 && !arr[i]._arch) arr.splice(i, 1); // 已封存的不因原紀錄刪除而消失
       flags[kind] = true;
     } else if (kind === 'drafts') { if (obj) st.drafts[id] = obj; else delete st.drafts[id]; flags.drafts.add(id) }
   }
@@ -2140,6 +2206,7 @@ function startApp() {
   if (metaJ) Object.assign(saved, safeParse(metaJ) || {});
   saved.sessions = parsePairs(S.remote.sessions).map(([, v]) => v);
   saved.bodyMetrics = parsePairs(S.remote.metrics).map(([, v]) => v);
+  parsePairs(S.remote.archive).forEach(([id, v]) => { const list = id.startsWith('s-') ? saved.sessions : saved.bodyMetrics; (v.items || []).forEach(it => { if (!list.some(x => String(x.id) === String(it.id))) list.push(it) }) });
   saved.drafts = Object.fromEntries(parsePairs(S.remote.drafts).map(([id, v]) => [dec(id), v]));
   const isEmpty = !metaJ && !saved.sessions.length && !saved.bodyMetrics.length;
   if (!metaJ) delete saved.version;
@@ -2159,7 +2226,7 @@ function enterApp() {
   if (S.entered) return;
   S.entered = true;
   showGate('loading', '正在讀取你的雲端紀錄…');
-  S.remote = { meta: {}, drafts: {}, sessions: {}, metrics: {} };
+  S.remote = { meta: {}, drafts: {}, sessions: {}, metrics: {}, archive: {} };
   S.unsub = backend.subscribe(S.uid, onDocs, (kind, err) => {
     console.error('[SHARK listen]', kind, err);
     if (!S.ready) showGate('error', err?.code === 'permission-denied' ? '沒有讀取權限：請確認 Firestore 安全規則已更新。' : '讀取雲端資料失敗：' + (err?.code || err?.message || err), { signOut: true });
