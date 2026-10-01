@@ -1,15 +1,28 @@
 {
-  "name": "SHARK V4.2 訓練紀錄",
+  "name": "SHARK Fitness",
   "short_name": "SHARK",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#101b2d",
-  "theme_color": "#101b2d",
+  "background_color": "#0b1424",
+  "theme_color": "#0b1424",
   "lang": "zh-Hant",
   "icons": [
-    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
