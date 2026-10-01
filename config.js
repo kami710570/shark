@@ -9,3 +9,5 @@ window.SHARK_FIREBASE_CONFIG = {
 };
 // 管理員：可以同意新使用者、移轉資料。要更換時，firestore.rules 裡的 email 也要一起改。
 window.SHARK_ADMIN = "hi2002no@gmail.com";
+// Google Drive 備份用的 OAuth 用戶端 ID（Google Cloud → API 和服務 → 憑證）。留空則不顯示 Drive 備份。
+window.SHARK_GOOGLE_CLIENT_ID = "";

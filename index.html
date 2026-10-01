@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="SHARK" />
-  <script src="config.js?v=4"></script>
+  <script src="config.js?v=5"></script>
   <style>
 :root{--navy:#0b1424;--teal:#0a9c88;--teal2:#087c96;--paper:#f4f3ef;--surface:#fff;--surface2:#f7f8fa;--input:#fbfcfd;--ink:#172033;--muted:#68768a;--line:#dde3ea;--good-bg:#e6f6ef;--good:#08765d;--warn-bg:#fff1ef;--warn:#b23b3b;--hold-bg:#f3f5f8;--radius:16px;--shadow:0 8px 28px rgba(16,27,45,.08)}
 html[data-theme="dark"]{--paper:#08101c;--surface:#101b2c;--surface2:#142236;--input:#0c1727;--ink:#eaf1f8;--muted:#93a3b6;--line:#26364b;--good-bg:#12362e;--good:#7fe3c4;--warn-bg:#3a2026;--warn:#ffa79e;--hold-bg:#172639;--shadow:0 10px 30px rgba(0,0,0,.3);color-scheme:dark}
@@ -222,6 +222,11 @@ textarea.tall-ish{min-height:260px}
 a.btn{text-decoration:none;color:inherit}
 .dlg-body .ex-info{margin:0}
 
+/* 提醒條、Drive */
+.notice{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--good-bg);color:var(--good);font-size:13.5px;font-weight:700}
+.notice span{flex:1}.notice .icon-btn{background:transparent;border:0;color:inherit}
+.drive-box{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}.drive-box p{margin:8px 0 0}.drive-box a{color:var(--teal)}
+
 /* 使用教學 */
 .tour{position:fixed;inset:0;z-index:90}
 .tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,9,18,.72);outline:2px solid var(--teal);transition:all .25s;pointer-events:none}
@@ -292,6 +297,7 @@ body.touring .float-timer{display:none}
       <button class="stat next" id="startBtn"><span>下一次</span><b id="statNext">—</b><small id="statNextDay"></small></button>
     </section>
 
+    <div id="notice" class="notice hidden"></div>
     <nav class="tabs" aria-label="分頁">
       <button class="tab active" data-view="train">訓練</button><button class="tab" data-view="stats">統計</button><button class="tab" data-view="history">歷史</button><button class="tab" data-view="program">課表</button><button class="tab" data-view="settings">設定</button>
     </nav>
@@ -371,7 +377,7 @@ body.touring .float-timer{display:none}
           <li><b>自重</b>同一條彈力帶 2 組達上限 → 換較輕的帶；自重達標 → 負重或升階。</li>
           <li><b>餘力</b>做完還能再做幾下（RIR）。例如上限 12 下：做 12 下、還能再 1 下 → 達標；做 11 下就算還能再 3 下也不算。不確定就留空。</li>
         </ul></div>
-      <div class="card pad"><h3>資料</h3><p class="muted sm">資料會自動同步到你的帳號。每天第一次開啟時會自動整理：120 天前的紀錄打包封存（內容都保留，統計與建議照常），沒有輸入的過期草稿會刪除，讓每次開啟的讀取量維持穩定。</p><p id="storageInfo" class="muted sm"></p>
+      <div class="card pad"><h3>資料</h3><p class="muted sm">資料會自動同步到你的帳號。每天第一次開啟時會自動整理：120 天前的紀錄打包封存（內容都保留，統計與建議照常），沒有輸入的過期草稿會刪除，讓每次開啟的讀取量維持穩定。</p><p id="storageInfo" class="muted sm"></p><div id="driveBox" class="drive-box"></div>
         <div class="row-inline wrap"><button id="exportJson" class="btn btn-light btn-sm">下載備份</button><button id="exportCsv" class="btn btn-light btn-sm">下載 CSV</button><label class="btn btn-light btn-sm" for="importJson">匯入備份</label><input id="importJson" class="hidden" type="file" accept="application/json,.json"><button id="runMaint" class="btn btn-light btn-sm">立即整理</button><button id="clearDrafts" class="btn btn-light btn-sm">清除舊草稿</button><button id="resetAll" class="btn btn-danger btn-sm">清除全部資料</button></div></div>
     </section>
   </main>
@@ -1638,6 +1644,10 @@ function renderSettings() {
   }).join('');
   renderLibrary();
   const old = oldDraftKeys().length; $('#clearDrafts').textContent = `清除舊草稿（${old}）`; $('#clearDrafts').disabled = !old;
+  $('#driveBox').innerHTML = driveReady()
+    ? `<div class="row-inline wrap"><button id="driveBackup" class="btn btn-primary btn-sm">備份到 Google Drive</button><button id="driveRestore" class="btn btn-light btn-sm">從 Drive 還原</button><label class="check sm"><input id="driveWeekly" type="checkbox" ${state.prefs.driveWeekly !== false ? 'checked' : ''}> 每週提醒</label></div><p class="muted sm">存到你自己的 Drive「${DRIVE_FOLDER}」資料夾，保留最近 ${DRIVE_KEEP} 份。網頁只能存取它自己建立的檔案。上次：<b>${state.prefs.lastDriveBackup || '尚未備份'}</b>${state.prefs.driveFolder ? ` · <a href="https://drive.google.com/drive/folders/${esc(state.prefs.driveFolder)}" target="_blank" rel="noopener">開啟資料夾</a>` : ''}</p>`
+    : '<p class="muted sm">Google Drive 備份尚未啟用（管理員需完成一次性設定）。</p>';
+  if (driveReady()) { $('#driveBackup').onclick = backupToDrive; $('#driveRestore').onclick = restoreFromDrive; $('#driveWeekly').onchange = e => { state.prefs.driveWeekly = e.target.checked; persist() } }
   const sm = storageSummary();
   $('#storageInfo').innerHTML = `近期訓練 <b>${sm.recentS}</b> 筆、已封存 <b>${sm.archS}</b> 筆（${sm.files} 個封存檔）、草稿 <b>${sm.drafts}</b> 份 · 每次開啟約讀取 <b>${sm.perOpen}</b> 筆<br>上次下載備份：<b>${state.prefs.lastBackup || '尚未下載'}</b>`;
 }
@@ -1681,6 +1691,7 @@ function exportCsv() {
 async function importJson(file) {
   try {
     const n = JSON.parse(await file.text()); if (!Array.isArray(n.sessions)) throw 0;
+    delete n.prefs; // 還原時不覆蓋目前的偏好設定
     const m = migrate(n); let added = 0;
     m.sessions.forEach(s => { if (!s.id || !state.sessions.some(x => x.id === s.id)) { state.sessions.push(s); added++ } });
     const fresh = state.sessions.length === added;
@@ -1851,6 +1862,90 @@ window.addEventListener('resize', () => { if (tourStep >= 0) placeTour() });
 window.addEventListener('scroll', () => { if (tourStep >= 0) placeTour() }, { passive: true });
 document.addEventListener('keydown', e => { if (tourStep < 0) return; if (e.key === 'Escape') endTour(); if (e.key === 'ArrowRight') showTourStep(tourStep + 1); if (e.key === 'ArrowLeft' && tourStep > 0) showTourStep(tourStep - 1) });
 
+// ===== 06.7 · 備份到使用者自己的 Google Drive =====
+// 權限只用 drive.file：網頁只能看到「自己建立的檔案」，碰不到使用者 Drive 裡的其他東西
+const DRIVE_FOLDER = 'SHARK Fitness 備份', DRIVE_KEEP = 10, DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+let gisLoading = null, driveToken = null, driveTokenExp = 0;
+const driveReady = () => !!window.SHARK_GOOGLE_CLIENT_ID;
+
+function loadGis() {
+  if (window.google?.accounts?.oauth2) return Promise.resolve();
+  return gisLoading ||= new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = () => res(); s.onerror = () => { gisLoading = null; rej(new Error('無法載入 Google 登入元件，請確認網路')) };
+    document.head.appendChild(s);
+  });
+}
+async function driveTokenGet() {
+  if (driveToken && Date.now() < driveTokenExp - 60000) return driveToken;
+  if (!driveReady()) throw new Error('Google Drive 備份尚未設定（缺少用戶端 ID）');
+  await loadGis();
+  return new Promise((res, rej) => {
+    const tc = google.accounts.oauth2.initTokenClient({
+      client_id: window.SHARK_GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE, prompt: '', login_hint: SYNC.email || undefined,
+      callback: r => { if (r.error) return rej(new Error(r.error_description || r.error)); driveToken = r.access_token; driveTokenExp = Date.now() + (Number(r.expires_in) || 3600) * 1000; res(driveToken) },
+      error_callback: e => rej(new Error(e?.type === 'popup_closed' ? '授權視窗已關閉' : e?.type === 'popup_failed_to_open' ? '授權視窗被瀏覽器擋住，請允許彈出視窗' : '授權失敗')),
+    });
+    tc.requestAccessToken();
+  });
+}
+async function gapi(path, opts = {}) {
+  const t = await driveTokenGet();
+  const r = await fetch('https://www.googleapis.com/' + path, { ...opts, headers: { Authorization: 'Bearer ' + t, ...(opts.headers || {}) } });
+  if (r.status === 401) { driveToken = null; throw new Error('授權已過期，請再按一次') }
+  if (!r.ok) throw new Error('Google Drive 回應錯誤（' + r.status + '）');
+  return r.status === 204 ? null : (opts.raw ? r.text() : r.json());
+}
+async function driveFolderId() {
+  const saved = state.prefs.driveFolder;
+  if (saved) { try { const f = await gapi(`drive/v3/files/${saved}?fields=id,trashed`); if (!f.trashed) return saved } catch { } }
+  const q = encodeURIComponent(`name='${DRIVE_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const found = await gapi(`drive/v3/files?q=${q}&fields=files(id)&spaces=drive`);
+  const id = found.files?.[0]?.id || (await gapi('drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: DRIVE_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) })).id;
+  state.prefs.driveFolder = id; persist();
+  return id;
+}
+async function driveList(folder) {
+  const q = encodeURIComponent(`'${folder}' in parents and trashed=false`);
+  return (await gapi(`drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=100&fields=files(id,name,createdTime,size)`)).files || [];
+}
+async function backupToDrive() {
+  const btn = $('#driveBackup'); if (btn) btn.disabled = true;
+  try {
+    toast('備份到 Google Drive 中…');
+    const folder = await driveFolderId(), boundary = 'shark' + Date.now();
+    const meta = { name: `SHARK_備份_${today()}_${new Date().toTimeString().slice(0, 5).replace(':', '')}.json`, parents: [folder], mimeType: 'application/json' };
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(state)}\r\n--${boundary}--`;
+    await gapi('upload/drive/v3/files?uploadType=multipart&fields=id', { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body });
+    const old = (await driveList(folder)).slice(DRIVE_KEEP); // 只保留最近 10 份，較舊的移到垃圾桶（30 天內可救回）
+    for (const f of old) await gapi(`drive/v3/files/${f.id}?fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }).catch(() => { });
+    state.prefs.lastBackup = state.prefs.lastDriveBackup = today(); persist();
+    toast('已備份到 Google Drive「' + DRIVE_FOLDER + '」'); hideNotice(); renderSettings();
+  } catch (e) { console.error(e); toast('備份失敗：' + e.message) }
+  finally { if (btn) btn.disabled = false }
+}
+async function restoreFromDrive() {
+  try {
+    const files = await driveList(await driveFolderId());
+    openDialog('從 Google Drive 還原', files.length ? `<p class="muted sm">選一份備份匯入。會和目前資料合併，不會刪掉現有紀錄。</p><div class="pick-list">${files.map(f => `<button class="pick" data-file="${esc(f.id)}"><b>${esc(f.name.replace(/^SHARK_備份_|\.json$/g, ''))}</b><small>${Math.round((f.size || 0) / 1024)} KB</small></button>`).join('')}</div>` : '<div class="empty sm">Drive 裡還沒有備份。</div>');
+    $$('#dlgBody [data-file]').forEach(b => b.onclick = async () => { closeDialog(); toast('下載中…'); try { await importJson({ text: async () => gapi(`drive/v3/files/${b.dataset.file}?alt=media`, { raw: true }) }) } catch (e) { toast('還原失敗：' + e.message) } });
+  } catch (e) { console.error(e); toast('無法讀取 Drive：' + e.message) }
+}
+
+// ---------- 首頁提醒條（例如：本週還沒備份）----------
+function showNotice(text, label, fn) {
+  const n = $('#notice'); n.innerHTML = `<span>${esc(text)}</span><button class="btn btn-primary btn-sm" id="noticeGo">${esc(label)}</button><button class="icon-btn" id="noticeX" aria-label="關閉">✕</button>`;
+  n.classList.remove('hidden'); $('#noticeGo').onclick = fn; $('#noticeX').onclick = () => { hideNotice(); state.prefs.noticeHidden = today(); persist() };
+}
+function hideNotice() { $('#notice')?.classList.add('hidden') }
+function backupReminder() {
+  if (!state.sessions.length || state.prefs.noticeHidden === today()) return;
+  const last = state.prefs.lastBackup;
+  if (driveReady() && state.prefs.driveWeekly !== false && (!state.prefs.lastDriveBackup || state.prefs.lastDriveBackup < daysAgo(7)))
+    showNotice(state.prefs.lastDriveBackup ? '已經一週沒有備份到 Google Drive' : '把紀錄備份到你自己的 Google Drive', '備份', backupToDrive);
+  else if (!driveReady() && (!last || last < daysAgo(30))) showNotice('已超過 30 天沒有下載備份', '下載', exportJson);
+}
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400) }
@@ -1951,11 +2046,10 @@ initMembers();
 renderAll();
 // 每天第一次開啟：整理資料、提醒備份與舊草稿
 setTimeout(() => {
-  const r = maintain(false); if (!r) return;
+  const r = maintain(false); backupReminder(); if (!r) return;
   const msgs = [];
   if (r.sessions || r.metrics) msgs.push(`已封存 ${r.sessions + r.metrics} 筆舊紀錄`);
   const stale = staleDrafts().length; if (stale) msgs.push(`有 ${stale} 份超過 ${STALE_DRAFT_DAYS} 天未保存的草稿，可到「設定」清除`);
-  const lb = state.prefs.lastBackup; if (state.sessions.length && (!lb || lb < daysAgo(30))) msgs.push('已超過 30 天沒有下載備份');
   if (msgs.length) toast(msgs.join('；'));
   if (view === 'settings') renderSettings();
 }, 1500);
@@ -2213,13 +2307,14 @@ function startApp() {
   for (const kind of KINDS) for (const [id, j] of Object.entries(S.remote[kind])) S.synced.set(pathOf(kind, id), j);
   S.remote = null;
   if (S.isAdmin && backend.admin) SYNC.admin = { ...backend.admin, me: S.uid };
+  SYNC.email = S.user?.email || '';
   S.app = window.SHARK_START(saved, SYNC);
   hideGate(); setStatus();
   if (isEmpty) setTimeout(() => S.app.welcomeEmpty(), 400);
   flush();
 }
 
-const SYNC = { persist: schedule, flush, admin: null, cooldownDays: COOLDOWN_DAYS };
+const SYNC = { persist: schedule, flush, admin: null, cooldownDays: COOLDOWN_DAYS, email: '' };
 const isAdminUser = u => !!u && !!ADMIN && u.email === ADMIN && u.verified !== false;
 
 function enterApp() {
