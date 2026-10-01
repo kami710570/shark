@@ -199,6 +199,15 @@ details.mem-done summary{cursor:pointer;font-size:12.5px;color:var(--muted);font
 .gate-out{margin-top:14px;border:0;background:none;color:#9fc3d9;text-decoration:underline;font-size:13px;padding:0}
 .auth-card .gate-out{width:auto}
 
+/* 使用教學 */
+.tour{position:fixed;inset:0;z-index:90}
+.tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,9,18,.72);outline:2px solid var(--teal);transition:all .25s;pointer-events:none}
+.tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:top .25s,left .25s}
+.tour-card h3{margin:2px 0 6px}.tour-card p{margin:0 0 14px;font-size:14px;color:var(--muted);line-height:1.6}
+.tour-count{font-size:11.5px;color:var(--teal);font-weight:800}
+.tour-btns{display:flex;gap:8px;align-items:center}.tour-btns span{flex:1}
+body.touring .float-timer{display:none}
+
 /* 窄螢幕 */
 @media (max-width:760px){
   .grid-2{grid-template-columns:1fr}.span-2{grid-column:auto}
@@ -304,6 +313,7 @@ details.mem-done summary{cursor:pointer;font-size:12.5px;color:var(--muted);font
       <div id="membersCard" class="card pad hidden"><div class="card-h"><h3>成員</h3></div><div id="memberList"></div></div>
       <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">勾選你有的器材；重量上限與加重幅度會用在進步建議。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>自訂動作</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 動作</button></div><div id="customList" class="pick-list"></div></div>
+      <div class="card pad"><div class="card-h"><h3>使用教學</h3><button id="tourStart" class="btn btn-light btn-sm">重新觀看</button></div><p class="muted sm">一步步介紹計時器、重量建議、課表與統計，約 1 分鐘。</p></div>
       <div class="card pad"><h3>進步規則</h3>
         <ul class="rules">
           <li><b>加重</b>同一重量有 2 組做到次數上限 → 下次加一級（啞鈴 +2 kg、Cable +1 格、槓鈴 +2.5 kg，可在器材調整）。</li>
@@ -1558,6 +1568,71 @@ function openMove(m) {
   });
 }
 
+// ===== 06.6 · 使用教學（第一次使用自動出現；設定裡可重看）=====
+const TOUR = [
+  { title: '歡迎使用 SHARK Fitness', text: '花 1 分鐘認識主要功能。隨時可以按「略過」，之後在「設定 → 使用教學」重看。' },
+  { view: 'train', el: '.summary', title: '摘要', text: '本週練了幾次、上次練什麼，以及下一次該練哪一天。點綠色的「下一次」可以直接開始。' },
+  { view: 'train', el: '.tabs', title: '五個分頁', text: '訓練、統計、歷史、課表、設定。大部分時間只會用到「訓練」。' },
+  { view: 'train', el: '.toolbar', title: '選日期與訓練日', text: '預設是今天和課表輪到的那一天，也可以手動切換。「清空」會清掉今天還沒保存的輸入。' },
+  { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」，會自動勾選這組完成；休息完按「下一組」。往下捲時，上方會出現小計時列。' },
+  { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是依上次表現算出的建議重量。同一重量有 2 組做到次數上限，下次就會建議加重；到器材上限會出現「升階」。' },
+  { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和 RIR（還能再做幾下），完成就打勾。輸入會自動保存，換手機也接得上。' },
+  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數。' },
+  { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
+  { view: 'program', el: '.prog-bar', title: '課表', text: '可以有多份課表，選中的就是訓練頁使用的那份。「複製」後再修改最安全。' },
+  { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
+  { view: 'settings', el: '#equipList', title: '器材', text: '勾選你有的器材，並設定重量上限和每次加重的幅度，建議會依這些設定計算。' },
+  { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
+  { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看，到「設定 → 使用教學」。' },
+];
+let tourStep = -1;
+
+function startTour() {
+  if (!$('#tour')) document.body.insertAdjacentHTML('beforeend', `<div id="tour" class="tour hidden" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <div class="tour-spot"></div>
+    <div class="tour-card"><div class="tour-count"></div><h3 id="tourTitle"></h3><p class="tour-text"></p>
+      <div class="tour-btns"><button class="btn btn-light btn-sm" data-tour="skip">略過</button><span></span><button class="btn btn-light btn-sm" data-tour="prev">上一步</button><button class="btn btn-primary btn-sm" data-tour="next">下一步</button></div></div></div>`);
+  $('#tour').onclick = e => { const a = e.target.closest('[data-tour]')?.dataset.tour; if (a === 'skip') endTour(); if (a === 'prev') showTourStep(tourStep - 1); if (a === 'next') showTourStep(tourStep + 1) };
+  $('#tour').classList.remove('hidden'); document.body.classList.add('touring');
+  showTourStep(0);
+}
+function showTourStep(i) {
+  if (i >= TOUR.length) return endTour();
+  tourStep = Math.max(0, i);
+  const s = TOUR[tourStep];
+  if (s.view && s.view !== view) switchView(s.view);
+  const target = s.el ? $(s.el) : null;
+  if (s.el && (!target || !target.offsetParent)) return showTourStep(tourStep + (i < tourStep ? -1 : 1)); // 找不到就跳過
+  $('#tourTitle').textContent = s.title; $('.tour-text').textContent = s.text;
+  $('.tour-count').textContent = `${tourStep + 1} / ${TOUR.length}`;
+  $('[data-tour="prev"]').hidden = tourStep === 0;
+  $('[data-tour="next"]').textContent = tourStep === 0 ? '開始' : tourStep === TOUR.length - 1 ? '完成' : '下一步';
+  $('[data-tour="skip"]').hidden = tourStep === TOUR.length - 1;
+  if (target) target.scrollIntoView({ block: 'center', behavior: 'instant' });
+  else window.scrollTo({ top: 0, behavior: 'instant' });
+  requestAnimationFrame(placeTour);
+}
+function placeTour() {
+  const s = TOUR[tourStep], spot = $('.tour-spot'), card = $('.tour-card'); if (!s || !spot) return;
+  const target = s.el ? $(s.el) : null, vw = window.innerWidth, vh = window.innerHeight;
+  if (!target) { spot.style.cssText = 'left:50%;top:50%;width:0;height:0'; card.style.cssText = `left:${Math.max(12, (vw - card.offsetWidth) / 2)}px;top:${Math.max(12, (vh - card.offsetHeight) / 2)}px`; return }
+  const r = target.getBoundingClientRect(), pad = 6;
+  const top = Math.max(4, r.top - pad), bottom = Math.min(vh - 4, r.bottom + pad);
+  spot.style.cssText = `left:${r.left - pad}px;top:${top}px;width:${r.width + pad * 2}px;height:${Math.max(0, bottom - top)}px`;
+  const cw = card.offsetWidth, ch = card.offsetHeight, left = Math.min(Math.max(12, r.left), vw - cw - 12);
+  const below = bottom + 12, above = top - ch - 12;
+  const y = below + ch <= vh - 8 ? below : above >= 8 ? above : Math.max(8, vh - ch - 8);
+  card.style.cssText = `left:${left}px;top:${y}px`;
+}
+function endTour() {
+  $('#tour')?.classList.add('hidden'); document.body.classList.remove('touring'); tourStep = -1;
+  if (!state.prefs.tourDone) { state.prefs.tourDone = true; persist() }
+  switchView('train'); window.scrollTo({ top: 0 });
+}
+window.addEventListener('resize', () => { if (tourStep >= 0) placeTour() });
+window.addEventListener('scroll', () => { if (tourStep >= 0) placeTour() }, { passive: true });
+document.addEventListener('keydown', e => { if (tourStep < 0) return; if (e.key === 'Escape') endTour(); if (e.key === 'ArrowRight') showTourStep(tourStep + 1); if (e.key === 'ArrowLeft' && tourStep > 0) showTourStep(tourStep - 1) });
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400) }
@@ -1654,6 +1729,8 @@ window.addEventListener('beforeunload', () => { if (timerState?.active) { closeA
 
 initMembers();
 renderAll();
+$('#tourStart').onclick = startTour;
+if (!state.prefs.tourDone && !state.sessions.length) setTimeout(startTour, 700);
 
 return {
   get state() { return state },
