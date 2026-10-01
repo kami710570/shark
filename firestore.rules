@@ -21,9 +21,20 @@ service cloud.firestore {
         && d.name is string && d.name.size() <= 80;
     }
 
+    function mine(uid) { return signedIn() && request.auth.uid == uid && approved(uid); }
+    // 每筆資料的格式與大小限制（避免異常的大量資料）
+    function validDoc(kind) {
+      let d = request.resource.data;
+      return kind in ['meta', 'drafts', 'sessions', 'metrics']
+        && d.keys().hasOnly(['json', 'updatedAt'])
+        && d.json is string && d.json.size() < 300000
+        && d.updatedAt == request.time;
+    }
+
     // 訓練資料：本人（已核准）或管理員
-    match /users/{uid}/{document=**} {
-      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == uid && approved(uid));
+    match /users/{uid}/{kind}/{id} {
+      allow read, delete: if isAdmin() || mine(uid);
+      allow create, update: if isAdmin() || (mine(uid) && validDoc(kind));
     }
 
     // 使用權限：本人只能送出申請；狀態只有管理員能改

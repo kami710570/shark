@@ -201,6 +201,7 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
 
 /* 成員 */
 .tab.badge::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef6b6b;margin-left:4px;vertical-align:top}
+.online{color:var(--good);font-weight:700}
 .mem-h{font-size:12px;color:var(--muted);font-weight:800;margin:12px 0 2px}
 .mem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
 .mem b{display:inline}.mem .rename{margin-left:8px;font-size:12px}.mem small{display:block;color:var(--muted);font-size:12px;word-break:break-all}
@@ -1656,6 +1657,22 @@ function resetAll() {
 
 // ===== 06.5 · 成員管理（只有管理員看得到）=====
 let MEMBERS = [], lastPending = 0;
+const ACTIVE = {}; // uid -> {t, at}：最近活動時間（快取 5 分鐘）
+function activeText(t) {
+  if (!t) return '尚無活動';
+  const m = (Date.now() - t) / 60000;
+  if (m < 15) return '<span class="online">● 使用中</span>';
+  if (m < 60) return `${Math.round(m)} 分鐘前`;
+  const d = new Date(t), td = new Date();
+  return d.toDateString() === td.toDateString() ? `今天 ${d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}` : d.toLocaleDateString('zh-TW');
+}
+async function loadActivity() {
+  if (!SYNC.admin?.lastActive) return;
+  const todo = MEMBERS.filter(m => m.status === 'approved' && (!ACTIVE[m.uid] || Date.now() - ACTIVE[m.uid].at > 300000));
+  if (!todo.length) return;
+  await Promise.all(todo.map(async m => { ACTIVE[m.uid] = { t: await SYNC.admin.lastActive(m.uid).catch(() => 0), at: Date.now() } }));
+  if (view === 'settings') renderMembers(true);
+}
 const STATUS_TEXT = { pending: '待審核', approved: '使用中', rejected: '已拒絕', blocked: '已封鎖', removed: '已停用', moved: '已移轉' };
 const fmtDay = t => t ? new Date(t).toLocaleDateString('zh-TW') : '';
 
@@ -1673,10 +1690,11 @@ function initMembers() {
   });
 }
 
-function renderMembers() {
+function renderMembers(fromActivity) {
   if (!SYNC.admin) return;
+  if (!fromActivity) loadActivity();
   const b = (act, label, cls = 'btn-light') => `<button class="btn ${cls} btn-sm" data-mact="${act}">${label}</button>`;
-  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.nickname || m.name || m.email)}</b><button class="link sm rename" data-mact="rename">改名</button><small>${m.nickname && m.name ? esc(m.name) + ' · ' : ''}${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
+  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.nickname || m.name || m.email)}</b><button class="link sm rename" data-mact="rename">改名</button><small>${m.nickname && m.name ? esc(m.name) + ' · ' : ''}${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}${m.status === 'approved' && m.uid in ACTIVE ? ` · 最近活動：${activeText(ACTIVE[m.uid].t)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
   const pending = MEMBERS.filter(m => m.status === 'pending'), active = MEMBERS.filter(m => m.status === 'approved'), done = MEMBERS.filter(m => !['pending', 'approved'].includes(m.status));
   let html = '';
   if (pending.length) html += `<div class="mem-h">待審核（${pending.length}）</div>` + pending.map(m => row(m, b('approve', '同意', 'btn-primary') + b('reject', '拒絕') + b('block', '封鎖', 'btn-danger'))).join('');
@@ -2007,6 +2025,11 @@ async function firebaseBackend(cfg) {
         await commit(ops);
         return { sessions: src.sessions.length, copied: ops.length };
       },
+      async lastActive(uid) {
+        const top = async kind => { const s = await F.getDocs(F.query(F.collection(db, 'users', uid, kind), F.orderBy('updatedAt', 'desc'), F.limit(1))); return s.empty ? 0 : ms(s.docs[0].data().updatedAt) };
+        const vals = await Promise.all(['drafts', 'sessions', 'meta'].map(k => top(k).catch(() => 0)));
+        return Math.max(0, ...vals);
+      },
       async wipe(uid) {
         const src = await readUser(uid);
         await commit(KINDS.flatMap(kind => src[kind].map(d => ({ path: ['users', uid, kind, d.id], data: null }))));
@@ -2035,12 +2058,27 @@ function setStatus() {
   let text, cls;
   if (S.failed) { text = '同步失敗，稍後自動重試'; cls = 'err' }
   else if (S.pending > 0) { text = navigator.onLine ? '同步中…' : '離線中，連線後自動同步'; cls = 'wait' }
+  else if (S.slow) { text = S.slow === 'day' ? '今日同步量偏高，已放慢同步' : '同步已暫時放慢'; cls = 'wait' }
   else { text = S.lastOk ? '已同步 ' + S.lastOk.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '已連線雲端'; cls = 'ok' }
   el.textContent = text;
   if (dot) dot.dataset.state = cls;
 }
 
-function schedule() { clearTimeout(S.timer); S.timer = setTimeout(flush, 600) }
+// ---------- 流量保護：短時間大量寫入時自動放慢同步（資料不會遺失，只是晚點上傳）----------
+const GUARD = { perMinute: 60, perDay: 2000 };
+const W = { recent: [] };
+const dayKey = () => `shark-w-${S.uid}-${new Date().toLocaleDateString('sv-SE')}`;
+function dayWrites() { try { return Number(localStorage.getItem(dayKey())) || 0 } catch { return 0 } }
+function countWrites(n) {
+  const now = Date.now(); W.recent.push([now, n]); W.recent = W.recent.filter(([t]) => now - t < 60000);
+  try { localStorage.setItem(dayKey(), dayWrites() + n) } catch { }
+}
+function syncDelay() {
+  if (dayWrites() > GUARD.perDay) { S.slow = 'day'; return 60000 }
+  if (W.recent.reduce((a, [, n]) => a + n, 0) > GUARD.perMinute) { S.slow = 'minute'; return 10000 }
+  S.slow = null; return 600;
+}
+function schedule() { clearTimeout(S.timer); const d = syncDelay(); S.timer = setTimeout(flush, d); if (S.slow) setStatus() }
 
 function flush() {
   clearTimeout(S.timer);
@@ -2052,7 +2090,7 @@ function flush() {
   const prev = ops.map(o => [o.p, S.synced.get(o.p)]);
   ops.forEach(o => o.json == null ? S.synced.delete(o.p) : S.synced.set(o.p, o.json));
   const writeOps = ops.map(o => { const [kind, ...rest] = o.p.split('/'); return { kind, id: rest.join('/'), json: o.json } });
-  S.pending++; S.failed = false; setStatus();
+  S.pending++; S.failed = false; countWrites(writeOps.length); setStatus();
   backend.write(S.uid, writeOps).then(() => { S.lastOk = new Date() }).catch(err => {
     console.error('[SHARK sync]', err);
     // 失敗時把這些路徑標回「未同步」，下次保存時會重送
