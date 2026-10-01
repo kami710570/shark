@@ -281,6 +281,11 @@ body.touring .float-timer{display:none}
 .rk{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;color:var(--muted);background:var(--surface2)}
 .rk1{background:#f5c542;color:#4a3700}.rk2{background:#c9d1d9;color:#2b333b}.rk3{background:#d99a6c;color:#3d2210}
 .tabs{grid-template-columns:repeat(6,1fr)}
+/* 更新紀錄 */
+.log{padding:8px 0;border-top:1px solid var(--line)}.log:first-child{border-top:0;padding-top:0}
+.log-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.log ul{margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6}
+.log-more summary{cursor:pointer;color:var(--muted);font-size:13px;padding:8px 0}
 
   </style>
 </head>
@@ -401,6 +406,7 @@ body.touring .float-timer{display:none}
         <p class="muted sm">查看每個動作的訓練部位、做法與示範影片。</p>
         <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="">全部器材</option></select></div>
         <div id="libList" class="pick-list tall"></div></div>
+      <div class="card pad"><div class="card-h"><h3>更新紀錄</h3><span id="appVersion" class="muted sm"></span></div><div id="changeLog"></div></div>
       <div class="card pad"><div class="card-h"><h3>使用教學</h3><button id="tourStart" class="btn btn-light btn-sm">重新觀看</button></div><p class="muted sm">一步步介紹計時器、重量建議、課表與統計，約 1 分鐘。</p></div>
       <div class="card pad"><h3>進步規則</h3>
         <ul class="rules">
@@ -2293,6 +2299,48 @@ function renderProfile() {
   $('#acctInfo').textContent = `${SYNC.board?.name ? SYNC.board.name + ' · ' : ''}${SYNC.email}`;
 }
 
+// ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
+// 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
+const CHANGELOG = [
+  { v: '2026.10.02-3', date: '2026-10-02', title: '新增更新紀錄', items: [
+    '「設定」新增「更新紀錄」，可以看每次改版的內容；有新版本時，第一次打開會跳出提示。'] },
+  { v: '2026.10.02-2', date: '2026-10-02', title: '排行榜與暱稱', items: [
+    '新增「排行」分頁：訓練次數、槓鈴、啞鈴、自重四類。',
+    '重量用估算 1RM 比較，會附上實際做的那組；訓練要 30 分鐘以上才算 1 次，每天最多 1 次。',
+    '排行榜每天 7:00、12:00、18:00、22:00 更新；你自己那一列即時更新。',
+    '「設定」可以改暱稱，也可以選擇不參加排行榜。'] },
+  { v: '2026.10.02-1', date: '2026-10-02', title: '小修正', items: [
+    '網頁一直開著跨日時，回到畫面會自動換成今天的日期（昨天有沒保存的輸入時會提醒你）。'] },
+  { v: '2026.10.01-2', date: '2026-10-01', title: '訓練中加減動作、肌群資料更新', items: [
+    '訓練頁最下面可以「＋ 加入動作」，每個動作也能「移除」；可選擇是否同步改課表。',
+    '動作的主要／次要肌群改依 StrengthLog 資料，說明裡附上來源連結。',
+    '每週訓練量：主要肌群算 1 組、次要算 0.5 組；肩膀分成前肩、側肩、後肩。',
+    '已經是最輕的重量時，不再建議「降一級」。'] },
+  { v: '2026.10.01-1', date: '2026-10-01', title: 'SHARK Fitness 雲端版', items: [
+    '用 Google 帳號登入，手機、電腦自動同步。',
+    '新成員要經過管理員同意才能使用。',
+    '可自訂課表、器材，請 AI 產生課表後匯入。',
+    '「設定」可以重看使用教學、備份到自己的 Google Drive。',
+    '舊紀錄會自動整理封存，避免越用越慢。'] },
+];
+const logHtml = list => list.map(c => `<div class="log"><div class="log-h"><b>${esc(c.title)}</b><span class="muted sm">${esc(c.date)}</span></div><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+function renderChangelog() {
+  const el = $('#changeLog'); if (!el) return;
+  el.innerHTML = logHtml(CHANGELOG.slice(0, 3)) + (CHANGELOG.length > 3 ? `<details class="log-more"><summary>更早的更新（${CHANGELOG.length - 3}）</summary>${logHtml(CHANGELOG.slice(3))}</details>` : '');
+  $('#appVersion').textContent = '版本 ' + CHANGELOG[0].v;
+}
+// 有新版本：老用戶第一次打開時提示一次；新用戶直接記為已讀（他們會看教學）
+function whatsNew() {
+  const cur = CHANGELOG[0].v, seen = state.prefs.seenVersion;
+  if (seen === cur) return;
+  const brandNew = !state.sessions.length && !state.prefs.tourDone;
+  state.prefs.seenVersion = cur; persist();
+  if (brandNew) return;
+  const fresh = seen ? CHANGELOG.filter(c => c.v > seen) : CHANGELOG.slice(0, 3);
+  openDialog('更新了什麼', logHtml(fresh.slice(0, 3)) + '<p class="muted sm">完整紀錄在「設定 → 更新紀錄」。</p><div class="row-end"><button class="btn btn-primary" id="wnOk">知道了</button></div>');
+  $('#wnOk').onclick = closeDialog;
+}
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400) }
@@ -2316,7 +2364,7 @@ function renderView() {
   if (view === 'history') renderHistory();
   if (view === 'program') renderProgram();
   if (view === 'board') loadBoard(false);
-  if (view === 'settings') { renderSettings(); renderProfile(); renderMembers() }
+  if (view === 'settings') { renderSettings(); renderProfile(); renderMembers(); renderChangelog() }
 }
 function renderAll() { applyTheme(); renderStats(); renderView() }
 
@@ -2421,6 +2469,7 @@ $('#boardRefresh').onclick = () => loadBoard(true);
 $('#nickEdit').onclick = () => editNickname();
 $('#boardOn').onchange = e => { state.prefs.boardOff = !e.target.checked; persist(e.target.checked ? '已參加排行榜' : '已退出排行榜，其他人看不到你的資料'); boardSoon() };
 boardReady = true; boardSoon();
+whatsNew();
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
 if (!state.prefs.tourDone && !state.sessions.length) setTimeout(startTour, 700);
