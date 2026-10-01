@@ -7,3 +7,5 @@ window.SHARK_FIREBASE_CONFIG = {
   messagingSenderId: "1023210270688",
   appId: "1:1023210270688:web:2bd6d25a385970f4280585"
 };
+// 管理員：可以同意新使用者、移轉資料。要更換時，firestore.rules 裡的 email 也要一起改。
+window.SHARK_ADMIN = "hi2002no@gmail.com";

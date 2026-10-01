@@ -1,9 +1,44 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 每個人只能讀寫自己帳號底下的資料
+
+    function signedIn() { return request.auth != null; }
+    // 管理員（要更換時，config.js 裡的 SHARK_ADMIN 也要一起改）
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'hi2002no@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    function approved(uid) {
+      return exists(/databases/$(database)/documents/access/$(uid))
+        && get(/databases/$(database)/documents/access/$(uid)).data.status == 'approved';
+    }
+    function validRequest() {
+      let d = request.resource.data;
+      return d.status == 'pending'
+        && d.email == request.auth.token.email
+        && d.requestedAt == request.time
+        && d.name is string && d.name.size() <= 80;
+    }
+
+    // 訓練資料：本人（已核准）或管理員
     match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == uid && approved(uid));
+    }
+
+    // 使用權限：本人只能送出申請；狀態只有管理員能改
+    match /access/{uid} {
+      allow get: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow list, delete: if isAdmin();
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'name', 'status', 'requestedAt'])
+        && validRequest());
+      // 被拒絕或停用滿 7 天後，可以重新申請一次；封鎖、已移轉不行
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && resource.data.status in ['rejected', 'removed']
+        && request.time > resource.data.decidedAt + duration.value(7, 'd')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'name', 'status', 'requestedAt'])
+        && validRequest());
     }
   }
 }

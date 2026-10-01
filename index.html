@@ -189,6 +189,16 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
 .auth-card [hidden],.auth-spin[hidden]{display:none!important}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* 成員 */
+.tab.badge::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef6b6b;margin-left:4px;vertical-align:top}
+.mem-h{font-size:12px;color:var(--muted);font-weight:800;margin:12px 0 2px}
+.mem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.mem b{display:block}.mem small{display:block;color:var(--muted);font-size:12px;word-break:break-all}
+.mem-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}
+details.mem-done summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:700;margin-top:12px}
+.gate-out{margin-top:14px;border:0;background:none;color:#9fc3d9;text-decoration:underline;font-size:13px;padding:0}
+.auth-card .gate-out{width:auto}
+
 /* 窄螢幕 */
 @media (max-width:760px){
   .grid-2{grid-template-columns:1fr}.span-2{grid-column:auto}
@@ -211,6 +221,7 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
   .ft-btns button{padding:8px 7px;font-size:12.5px}.ft-time b{font-size:19px}
   .load-row{grid-template-columns:1.2fr 1fr .9fr;font-size:12.5px}
   .prog-bar{grid-template-columns:1fr}
+  .mem{flex-direction:column;align-items:flex-start}.mem-btns{justify-content:flex-start}
 }
 
   </style>
@@ -218,11 +229,13 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
 <body>
   <div id="authGate" class="auth-gate"><div class="auth-card">
     <div class="brand">SHARK <span>Fitness</span></div>
-    <h2>登入後，紀錄跟著你走。</h2>
+    <h2 id="authTitle">登入後，紀錄跟著你走。</h2>
     <p id="authMsg">用 Google 帳號登入，電腦和手機看到同一份紀錄。每個帳號的資料彼此分開。</p>
     <button id="googleSignIn" class="btn btn-primary" hidden>使用 Google 登入</button>
+    <button id="gateAction" class="btn btn-primary" hidden></button>
     <div id="authSpinner" class="auth-spin">載入中…</div>
     <p id="authNote" class="auth-note"></p>
+    <button id="gateSignOut" class="gate-out" hidden>換其他帳號登入</button>
   </div></div>
 
   <header class="top"><div class="top-in">
@@ -288,6 +301,7 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
     </section>
 
     <section id="settingsView" class="view hidden">
+      <div id="membersCard" class="card pad hidden"><div class="card-h"><h3>成員</h3></div><div id="memberList"></div></div>
       <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">勾選你有的器材；重量上限與加重幅度會用在進步建議。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>自訂動作</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 動作</button></div><div id="customList" class="pick-list"></div></div>
       <div class="card pad"><h3>進步規則</h3>
@@ -1472,6 +1486,77 @@ function resetAll() {
   state = migrate({ prefs: state.prefs }); invalidate(); persist('已清除'); currentDay = nextDayId(); initDaySelect(); renderAll();
 }
 
+// ===== 06.5 · 成員管理（只有管理員看得到）=====
+let MEMBERS = [], lastPending = 0;
+const STATUS_TEXT = { pending: '待審核', approved: '使用中', rejected: '已拒絕', blocked: '已封鎖', removed: '已停用', moved: '已移轉' };
+const fmtDay = t => t ? new Date(t).toLocaleDateString('zh-TW') : '';
+
+function initMembers() {
+  if (!SYNC.admin) return;
+  $('#membersCard').classList.remove('hidden');
+  let first = true;
+  SYNC.admin.watch(list => {
+    MEMBERS = list.filter(m => m.uid !== SYNC.admin.me).sort((a, b) => (b.requestedAt || 0) - (a.requestedAt || 0));
+    const n = MEMBERS.filter(m => m.status === 'pending').length;
+    $('.tab[data-view="settings"]').classList.toggle('badge', n > 0);
+    if (n && (first || n > lastPending)) toast(first ? `有 ${n} 位等待你同意使用` : '有新的使用申請');
+    lastPending = n; first = false;
+    if (view === 'settings') renderMembers();
+  });
+}
+
+function renderMembers() {
+  if (!SYNC.admin) return;
+  const b = (act, label, cls = 'btn-light') => `<button class="btn ${cls} btn-sm" data-mact="${act}">${label}</button>`;
+  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.name || m.email)}</b><small>${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
+  const pending = MEMBERS.filter(m => m.status === 'pending'), active = MEMBERS.filter(m => m.status === 'approved'), done = MEMBERS.filter(m => !['pending', 'approved'].includes(m.status));
+  let html = '';
+  if (pending.length) html += `<div class="mem-h">待審核（${pending.length}）</div>` + pending.map(m => row(m, b('approve', '同意', 'btn-primary') + b('reject', '拒絕') + b('block', '封鎖', 'btn-danger'))).join('');
+  if (active.length) html += `<div class="mem-h">使用中（${active.length}）</div>` + active.map(m => row(m, b('move', '移轉資料') + b('remove', '停用') + b('block', '封鎖', 'btn-danger'))).join('');
+  if (done.length) html += `<details class="mem-done"><summary>已處理（${done.length}）</summary>` + done.map(m => row(m,
+    b('approve', m.status === 'rejected' ? '改為同意' : '恢復使用') + (m.status === 'blocked' ? b('unblock', '解除封鎖') : b('block', '封鎖', 'btn-danger')) + (m.status === 'moved' || m.status === 'removed' ? b('wipe', '刪除資料', 'btn-danger') : ''))).join('') + '</details>';
+  $('#memberList').innerHTML = (html || '<div class="muted sm">還沒有人申請。把網址傳給家人，他們用 Google 登入並送出申請後會出現在這裡。</div>')
+    + `<p class="muted sm">拒絕或停用後，對方 ${SYNC.cooldownDays} 天後可以重新申請；封鎖則不能再申請。停用和移轉都會保留資料。</p>`;
+}
+
+async function onMemberClick(ev) {
+  const btn = ev.target.closest('[data-mact]'); if (!btn) return;
+  const uid = btn.closest('.mem').dataset.uid, m = MEMBERS.find(x => x.uid === uid), act = btn.dataset.mact, A = SYNC.admin;
+  if (!m) return;
+  const who = m.name || m.email;
+  try {
+    if (act === 'approve') { await A.set(uid, { status: 'approved' }); toast(`已同意 ${who}`) }
+    else if (act === 'reject') { if (!confirm(`拒絕 ${who} 的申請？對方 ${SYNC.cooldownDays} 天後可以重新申請。`)) return; await A.set(uid, { status: 'rejected' }); toast('已拒絕') }
+    else if (act === 'block') { if (!confirm(`封鎖 ${who}？對方無法使用，也不能再申請。之後可以解除。`)) return; await A.set(uid, { status: 'blocked' }); toast('已封鎖') }
+    else if (act === 'remove') { if (!confirm(`停用 ${who}？對方會立刻無法使用，資料保留，之後可以恢復。`)) return; await A.set(uid, { status: 'removed' }); toast('已停用') }
+    else if (act === 'unblock') { if (!confirm(`解除封鎖 ${who}？對方可以重新送出申請。`)) return; await A.remove(uid); toast('已解除封鎖') }
+    else if (act === 'wipe') {
+      if (!confirm(`刪除 ${who} 的所有訓練資料？無法復原。`)) return;
+      if (prompt('請輸入「刪除」確認') !== '刪除') return;
+      toast('刪除中…'); await A.wipe(uid); toast('已刪除資料');
+    }
+    else if (act === 'move') openMove(m);
+  } catch (e) { console.error(e); toast('操作失敗：' + (e.code || e.message)) }
+}
+
+function openMove(m) {
+  const targets = MEMBERS.filter(x => x.uid !== m.uid && x.status !== 'blocked' && x.status !== 'moved');
+  openDialog('移轉資料', `<p class="muted sm">把 <b>${esc(m.email)}</b> 的訓練紀錄、課表和身體數據複製到另一個帳號。完成後舊帳號會停用，舊資料仍保留。</p>
+    ${targets.length ? `<h4>移到哪個帳號？</h4><div class="pick-list">${targets.map(t => `<button class="pick" data-pick="${esc(t.uid)}"><b>${esc(t.email)}</b><small>${STATUS_TEXT[t.status] || ''}</small></button>`).join('')}</div>`
+      : '<div class="empty sm">新帳號要先登入網站並送出申請，才會出現在這裡。</div>'}`);
+  $$('#dlgBody .pick').forEach(b => b.onclick = async () => {
+    const t = MEMBERS.find(x => x.uid === b.dataset.pick); if (!t) return;
+    if (!confirm(`把 ${m.email} 的資料移到 ${t.email}？`)) return;
+    closeDialog(); toast('移轉中，請不要關閉網頁…');
+    try {
+      const r = await SYNC.admin.copy(m.uid, t.uid);
+      await SYNC.admin.set(t.uid, { status: 'approved' });
+      await SYNC.admin.set(m.uid, { status: 'moved', movedTo: t.email });
+      toast(`完成：${r.sessions} 筆訓練已移到 ${t.email}`);
+    } catch (e) { console.error(e); toast('移轉失敗：' + (e.code || e.message)) }
+  });
+}
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400) }
@@ -1494,7 +1579,7 @@ function renderView() {
   if (view === 'stats') renderAnalytics();
   if (view === 'history') renderHistory();
   if (view === 'program') renderProgram();
-  if (view === 'settings') renderSettings();
+  if (view === 'settings') { renderSettings(); renderMembers() }
 }
 function renderAll() { applyTheme(); renderStats(); renderView() }
 
@@ -1560,11 +1645,13 @@ $('#exportJson').onclick = exportJson; $('#exportCsv').onclick = exportCsv;
 $('#importJson').onchange = e => { const f = e.target.files[0]; if (f) importJson(f); e.target.value = '' };
 $('#clearDrafts').onclick = () => { const ks = oldDraftKeys(); if (!ks.length || !confirm(`刪除 ${ks.length} 份 7 天前的未完成草稿？`)) return; ks.forEach(k => delete state.drafts[k]); persist('已清除'); renderSettings() };
 $('#resetAll').onclick = resetAll;
+$('#memberList').onclick = onMemberClick;
 $('#dlgClose').onclick = closeDialog;
 $('#dlg').addEventListener('click', e => { if (e.target === $('#dlg')) closeDialog() });
 document.addEventListener('focusout', () => setTimeout(() => { if (remoteRefresh.pending) remoteRefresh({}) }, 60));
 window.addEventListener('beforeunload', () => { if (timerState?.active) { closeActive(); saveDraft() } });
 
+initMembers();
 renderAll();
 
 return {
@@ -1578,22 +1665,26 @@ return {
   };
   </script>
   <script type="module">
-// ===== SHARK 雲端同步（Firebase Auth + Firestore）=====
+// ===== SHARK 雲端同步（Firebase Auth + Firestore）＋ 使用權限 =====
 const FIREBASE_VERSION = '11.10.0';
 const KINDS = ['meta', 'drafts', 'sessions', 'metrics'];
+const COOLDOWN_DAYS = 7;
 const q = s => document.querySelector(s);
 const enc = id => encodeURIComponent(String(id)).replace(/\./g, '%2E');
 const dec = id => { try { return decodeURIComponent(id) } catch { return id } };
+const ADMIN = String(window.SHARK_ADMIN || '').toLowerCase();
 
-// ---------- 登入畫面 ----------
-const gate = q('#authGate'), gateMsg = q('#authMsg'), gateNote = q('#authNote'), gateBtn = q('#googleSignIn'), gateSpin = q('#authSpinner');
-function showGate(mode, note = '') {
-  gate.classList.remove('hidden');
-  document.body.classList.add('locked');
+// ---------- 登入／權限畫面 ----------
+const gate = q('#authGate'), gateTitle = q('#authTitle'), gateMsg = q('#authMsg'), gateNote = q('#authNote'), gateBtn = q('#googleSignIn'), gateSpin = q('#authSpinner'), gateAct = q('#gateAction'), gateOut = q('#gateSignOut');
+const DEFAULT_TITLE = gateTitle.innerHTML, DEFAULT_MSG = gateMsg.textContent;
+function showGate(mode, note = '', o = {}) {
+  gate.classList.remove('hidden'); document.body.classList.add('locked');
+  gateTitle.innerHTML = o.title || DEFAULT_TITLE; gateMsg.textContent = o.text ?? DEFAULT_MSG;
   gateBtn.hidden = mode !== 'login';
-  gateSpin.hidden = mode !== 'loading';
-  gateNote.textContent = note;
-  if (mode === 'loading') gateSpin.textContent = note || '連線中…';
+  gateSpin.hidden = mode !== 'loading'; if (mode === 'loading') gateSpin.textContent = note || '連線中…';
+  gateNote.textContent = mode === 'loading' ? '' : note;
+  gateAct.hidden = !o.action; if (o.action) { gateAct.textContent = o.action.label; gateAct.onclick = o.action.fn; gateAct.disabled = false }
+  gateOut.hidden = !o.signOut;
 }
 function hideGate() { gate.classList.add('hidden'); document.body.classList.remove('locked') }
 
@@ -1603,6 +1694,7 @@ const ERR = {
   'auth/network-request-failed': '網路連線失敗，請確認網路後再試。',
   'auth/operation-not-allowed': 'Firebase 尚未啟用 Google 登入。請到 Authentication → 登入方式，啟用 Google。',
 };
+const ms = t => t?.toMillis ? t.toMillis() : (typeof t === 'number' ? t : t ? new Date(t).getTime() : 0);
 
 // ---------- Firebase 後端 ----------
 async function firebaseBackend(cfg) {
@@ -1615,8 +1707,21 @@ async function firebaseBackend(cfg) {
   try { db = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }) }
   catch { db = F.getFirestore(app) }
   try { await A.getRedirectResult(auth) } catch (e) { if (e?.code) gateNote.textContent = ERR[e.code] || ('登入失敗：' + e.code) }
+  const accessDoc = d => ({ uid: d.id, ...d.data(), requestedAt: ms(d.data().requestedAt), decidedAt: ms(d.data().decidedAt) });
+  async function commit(ops) { // ops: [{path:[...], data|null}]
+    for (let i = 0; i < ops.length;) {
+      const b = F.writeBatch(db); let n = 0;
+      while (i < ops.length && n < 400) { const o = ops[i++], ref = F.doc(db, ...o.path); o.data == null ? b.delete(ref) : b.set(ref, o.data); n++ }
+      await b.commit();
+    }
+  }
+  async function readUser(uid) {
+    const out = {};
+    for (const kind of KINDS) out[kind] = (await F.getDocs(F.collection(db, 'users', uid, kind))).docs.map(d => ({ id: d.id, data: d.data() }));
+    return out;
+  }
   return {
-    onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, name: u.displayName || '', email: u.email || '' } : null)),
+    onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? { uid: u.uid, name: u.displayName || '', email: (u.email || '').toLowerCase(), verified: !!u.emailVerified } : null)),
     async signIn() {
       const p = new A.GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
       try { await A.signInWithPopup(auth, p) }
@@ -1636,21 +1741,40 @@ async function firebaseBackend(cfg) {
       }, err => onError(kind, err)));
     },
     async write(uid, ops) {
-      for (let i = 0; i < ops.length;) {
-        const b = F.writeBatch(db); let n = 0, bytes = 0;
-        while (i < ops.length && n < 400 && bytes < 3e6) {
-          const o = ops[i++], ref = F.doc(db, 'users', uid, o.kind, o.id);
-          if (o.json == null) b.delete(ref); else { b.set(ref, { json: o.json, updatedAt: F.serverTimestamp() }); bytes += o.json.length }
-          n++;
+      await commit(ops.map(o => ({ path: ['users', uid, o.kind, o.id], data: o.json == null ? null : { json: o.json, updatedAt: F.serverTimestamp() } })));
+    },
+    // --- 使用權限 ---
+    watchAccess(uid, cb) {
+      return F.onSnapshot(F.doc(db, 'access', uid), { includeMetadataChanges: true },
+        d => cb(d.exists() ? accessDoc(d) : null, { fromCache: d.metadata.fromCache }), err => cb(null, { error: err }));
+    },
+    requestAccess(user) {
+      return F.setDoc(F.doc(db, 'access', user.uid), { email: user.email, name: (user.name || '').slice(0, 80), status: 'pending', requestedAt: F.serverTimestamp() }, { merge: true });
+    },
+    admin: {
+      watch(cb) { return F.onSnapshot(F.collection(db, 'access'), s => cb(s.docs.map(accessDoc)), err => console.error('[SHARK members]', err)) },
+      set(uid, patch) { return F.setDoc(F.doc(db, 'access', uid), { ...patch, decidedAt: F.serverTimestamp() }, { merge: true }) },
+      remove(uid) { return F.deleteDoc(F.doc(db, 'access', uid)) },
+      async copy(from, to) {
+        const src = await readUser(from), dst = await readUser(to), ops = [];
+        const targetHasData = dst.sessions.length > 0;
+        for (const kind of KINDS) {
+          const have = new Set(dst[kind].map(d => d.id));
+          src[kind].forEach(d => { if (!have.has(d.id) || (kind === 'meta' && !targetHasData)) ops.push({ path: ['users', to, kind, d.id], data: d.data }) });
         }
-        await b.commit();
-      }
+        await commit(ops);
+        return { sessions: src.sessions.length, copied: ops.length };
+      },
+      async wipe(uid) {
+        const src = await readUser(uid);
+        await commit(KINDS.flatMap(kind => src[kind].map(d => ({ path: ['users', uid, kind, d.id], data: null }))));
+      },
     },
   };
 }
 
 // ---------- 同步引擎 ----------
-const S = { uid: null, app: null, ready: false, synced: new Map(), remote: null, loaded: {}, got: {}, timer: null, pending: 0, unsub: [], lastOk: null, failed: false };
+const S = { uid: null, user: null, app: null, ready: false, entered: false, synced: new Map(), remote: null, loaded: {}, got: {}, timer: null, pending: 0, unsub: [], lastOk: null, failed: false };
 const pathOf = (kind, id) => kind + '/' + id;
 
 function stateToMap(st) {
@@ -1692,7 +1816,7 @@ function flush() {
     // 失敗時把這些路徑標回「未同步」，下次保存時會重送
     prev.forEach(([p, v]) => { if (S.synced.get(p) === ops.find(o => o.p === p).json) { v === undefined ? S.synced.delete(p) : S.synced.set(p, v) } });
     S.failed = true;
-    if (err?.code === 'permission-denied') S.app?.toast?.('雲端拒絕寫入：請確認已發佈 Firestore 安全規則');
+    if (err?.code === 'permission-denied') S.app?.toast?.('雲端拒絕寫入：帳號權限可能已變更');
     setTimeout(() => { if (S.failed) flush() }, 15000);
   }).finally(() => { S.pending--; setStatus() });
 }
@@ -1741,13 +1865,54 @@ function startApp() {
   if (!metaJ) delete saved.version;
   for (const kind of KINDS) for (const [id, j] of Object.entries(S.remote[kind])) S.synced.set(pathOf(kind, id), j);
   S.remote = null;
+  if (isAdminUser(S.user) && backend.admin) SYNC.admin = { ...backend.admin, me: S.uid };
   S.app = window.SHARK_START(saved, SYNC);
   hideGate(); setStatus();
   if (isEmpty) setTimeout(() => S.app.welcomeEmpty(), 400);
   flush();
 }
 
-const SYNC = { persist: schedule, flush };
+const SYNC = { persist: schedule, flush, admin: null, cooldownDays: COOLDOWN_DAYS };
+const isAdminUser = u => !!u && !!ADMIN && u.email === ADMIN && u.verified !== false;
+
+function enterApp() {
+  if (S.entered) return;
+  S.entered = true;
+  showGate('loading', '正在讀取你的雲端紀錄…');
+  S.remote = { meta: {}, drafts: {}, sessions: {}, metrics: {} };
+  S.unsub = backend.subscribe(S.uid, onDocs, (kind, err) => {
+    console.error('[SHARK listen]', kind, err);
+    if (!S.ready) showGate('error', err?.code === 'permission-denied' ? '沒有讀取權限：請確認 Firestore 安全規則已更新。' : '讀取雲端資料失敗：' + (err?.code || err?.message || err), { signOut: true });
+  });
+  // 離線時：已有快取就先用快取開啟
+  S.bootTimer = setTimeout(() => { if (!S.ready && KINDS.every(k => S.got[k])) startApp() }, 6000);
+}
+
+// 使用權限：未核准的帳號停在申請畫面
+function onAccess(acc, info) {
+  if (info?.error) { console.error('[SHARK access]', info.error); if (!S.entered) showGate('error', '無法確認使用權限，請確認網路或稍後再試。', { signOut: true }); return }
+  const status = acc?.status;
+  if (status === 'approved') { clearTimeout(S.accessTimer); enterApp(); return }
+  if (S.entered) { location.reload(); return } // 使用中被移除權限
+  if (!acc && info?.fromCache) { // 還沒拿到伺服器的答案
+    showGate('loading', '確認使用權限…');
+    clearTimeout(S.accessTimer);
+    S.accessTimer = setTimeout(() => showGate('error', '無法確認使用權限，請連上網路後重新整理。', { signOut: true }), 8000);
+    return;
+  }
+  clearTimeout(S.accessTimer);
+  const request = label => ({ label, fn: async () => { gateAct.disabled = true; try { await backend.requestAccess(S.user) } catch (e) { gateNote.textContent = '送出失敗：' + (e.code || e.message); gateAct.disabled = false } } });
+  const who = S.user.email;
+  if (!acc) return showGate('access', '', { title: '申請使用', text: `這是私人的訓練紀錄工具，需要管理員同意才能使用。你目前登入的帳號是 ${who}。`, action: request('送出申請'), signOut: true });
+  if (status === 'pending') return showGate('access', '同意後這個畫面會自動進入，不用重新整理。', { title: '已送出申請', text: `正在等管理員同意（${who}）。`, signOut: true });
+  if (status === 'rejected' || status === 'removed') {
+    const until = (acc.decidedAt || 0) + COOLDOWN_DAYS * 864e5, ok = Date.now() >= until;
+    const word = status === 'rejected' ? '申請沒有通過' : '這個帳號已被停用';
+    return showGate('access', ok ? '' : `可在 ${new Date(until).toLocaleDateString('zh-TW')} 之後重新申請。`, { title: word, text: `帳號：${who}`, action: ok ? request('重新申請') : null, signOut: true });
+  }
+  if (status === 'moved') return showGate('access', '', { title: '資料已移到新帳號', text: `你的紀錄已移到 ${acc.movedTo || '新帳號'}，請改用該帳號登入。`, signOut: true });
+  return showGate('access', '', { title: '無法使用', text: `這個帳號（${who}）無法使用本工具。`, signOut: true });
+}
 
 // ---------- 啟動 ----------
 let backend;
@@ -1776,6 +1941,8 @@ async function main() {
     try { await backend.signIn() } catch (e) { gateNote.textContent = ERR[e.code] || ('登入失敗：' + (e.code || e.message)) }
     gateBtn.disabled = false;
   };
+  const signOut = async () => { if (S.ready) flush(); S.unsub.forEach(u => { try { u() } catch { } }); try { S.accessUnsub?.() } catch { } await backend.signOut(); location.reload() };
+  gateOut.onclick = signOut;
 
   backend.onAuth(user => {
     if (!user) {
@@ -1785,27 +1952,16 @@ async function main() {
     }
     if (S.uid === user.uid) return;
     if (S.uid && S.uid !== user.uid) { location.reload(); return }
-    S.uid = user.uid;
+    S.uid = user.uid; S.user = user;
     q('#accountName').textContent = user.name || user.email;
     q('#accountName').title = user.email;
     q('#account').hidden = false;
-    showGate('loading', '正在讀取你的雲端紀錄…');
-    S.remote = { meta: {}, drafts: {}, sessions: {}, metrics: {} };
-    S.unsub = backend.subscribe(user.uid, onDocs, (kind, err) => {
-      console.error('[SHARK listen]', kind, err);
-      if (!S.ready) showGate('error', err?.code === 'permission-denied' ? '雲端拒絕讀取：請確認 Firestore 安全規則已發佈。' : '讀取雲端資料失敗：' + (err?.code || err?.message || err));
-    });
-    // 離線時：已有快取就先用快取開啟
-    S.bootTimer = setTimeout(() => { if (!S.ready && KINDS.every(k => S.got[k])) startApp() }, 6000);
+    if (isAdminUser(user)) { enterApp(); return }
+    showGate('loading', '確認使用權限…');
+    S.accessUnsub = backend.watchAccess(user.uid, onAccess);
   });
 
-  q('#signOutBtn').onclick = async () => {
-    if (!confirm('登出這個帳號？（未同步的變更會先送出）')) return;
-    flush();
-    S.unsub.forEach(u => { try { u() } catch { } });
-    await backend.signOut();
-    location.reload();
-  };
+  q('#signOutBtn').onclick = async () => { if (confirm('登出這個帳號？（未同步的變更會先送出）')) signOut() };
   const flushNow = () => { if (S.ready) flush() };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNow() });
   window.addEventListener('pagehide', flushNow);
