@@ -193,7 +193,7 @@ dialog::backdrop{background:rgba(5,10,20,.55)}
 .tab.badge::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef6b6b;margin-left:4px;vertical-align:top}
 .mem-h{font-size:12px;color:var(--muted);font-weight:800;margin:12px 0 2px}
 .mem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
-.mem b{display:block}.mem small{display:block;color:var(--muted);font-size:12px;word-break:break-all}
+.mem b{display:inline}.mem .rename{margin-left:8px;font-size:12px}.mem small{display:block;color:var(--muted);font-size:12px;word-break:break-all}
 .mem-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none}
 details.mem-done summary{cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:700;margin-top:12px}
 .gate-out{margin-top:14px;border:0;background:none;color:#9fc3d9;text-decoration:underline;font-size:13px;padding:0}
@@ -1224,9 +1224,9 @@ function openDialog(title, html) {
   const d = $('#dlg'); if (!d.open) d.showModal();
 }
 function closeDialog() { const d = $('#dlg'); if (d.open) d.close() }
-function askText(title, label, value, cb) {
+function askText(title, label, value, cb, allowEmpty) {
   openDialog(title, `<label class="lab">${esc(label)}<input id="askInput" class="field" value="${esc(value || '')}"></label><div class="row-end"><button class="btn btn-primary" id="askOk">確定</button></div>`);
-  const go = () => { const v = $('#askInput').value.trim(); if (!v) return; closeDialog(); cb(v) };
+  const go = () => { const v = $('#askInput').value.trim(); if (!v && !allowEmpty) return; closeDialog(); cb(v) };
   $('#askOk').onclick = go; $('#askInput').onkeydown = e => { if (e.key === 'Enter') go() }; setTimeout(() => $('#askInput').focus(), 50);
 }
 
@@ -1508,7 +1508,7 @@ function initMembers() {
 function renderMembers() {
   if (!SYNC.admin) return;
   const b = (act, label, cls = 'btn-light') => `<button class="btn ${cls} btn-sm" data-mact="${act}">${label}</button>`;
-  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.name || m.email)}</b><small>${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
+  const row = (m, btns) => `<div class="mem" data-uid="${esc(m.uid)}"><div><b>${esc(m.nickname || m.name || m.email)}</b><button class="link sm rename" data-mact="rename">改名</button><small>${m.nickname && m.name ? esc(m.name) + ' · ' : ''}${esc(m.email)}${m.status === 'pending' && m.requestedAt ? ` · ${fmtDay(m.requestedAt)} 申請` : ''}${m.status !== 'pending' && m.status !== 'approved' ? ` · ${STATUS_TEXT[m.status] || m.status}${m.decidedAt ? ' ' + fmtDay(m.decidedAt) : ''}` : ''}${m.movedTo ? ` → ${esc(m.movedTo)}` : ''}</small></div><div class="mem-btns">${btns}</div></div>`;
   const pending = MEMBERS.filter(m => m.status === 'pending'), active = MEMBERS.filter(m => m.status === 'approved'), done = MEMBERS.filter(m => !['pending', 'approved'].includes(m.status));
   let html = '';
   if (pending.length) html += `<div class="mem-h">待審核（${pending.length}）</div>` + pending.map(m => row(m, b('approve', '同意', 'btn-primary') + b('reject', '拒絕') + b('block', '封鎖', 'btn-danger'))).join('');
@@ -1523,9 +1523,10 @@ async function onMemberClick(ev) {
   const btn = ev.target.closest('[data-mact]'); if (!btn) return;
   const uid = btn.closest('.mem').dataset.uid, m = MEMBERS.find(x => x.uid === uid), act = btn.dataset.mact, A = SYNC.admin;
   if (!m) return;
-  const who = m.name || m.email;
+  const who = m.nickname || m.name || m.email;
   try {
-    if (act === 'approve') { await A.set(uid, { status: 'approved' }); toast(`已同意 ${who}`) }
+    if (act === 'rename') return askText('成員暱稱', '暱稱（只顯示在成員清單，留空則用 Google 名稱）', m.nickname || '', v => A.rename(uid, v).then(() => toast('已更新暱稱')).catch(e => toast('操作失敗：' + (e.code || e.message))), true);
+    else if (act === 'approve') { await A.set(uid, { status: 'approved' }); toast(`已同意 ${who}`) }
     else if (act === 'reject') { if (!confirm(`拒絕 ${who} 的申請？對方 ${SYNC.cooldownDays} 天後可以重新申請。`)) return; await A.set(uid, { status: 'rejected' }); toast('已拒絕') }
     else if (act === 'block') { if (!confirm(`封鎖 ${who}？對方無法使用，也不能再申請。之後可以解除。`)) return; await A.set(uid, { status: 'blocked' }); toast('已封鎖') }
     else if (act === 'remove') { if (!confirm(`停用 ${who}？對方會立刻無法使用，資料保留，之後可以恢復。`)) return; await A.set(uid, { status: 'removed' }); toast('已停用') }
@@ -1542,7 +1543,7 @@ async function onMemberClick(ev) {
 function openMove(m) {
   const targets = MEMBERS.filter(x => x.uid !== m.uid && x.status !== 'blocked' && x.status !== 'moved');
   openDialog('移轉資料', `<p class="muted sm">把 <b>${esc(m.email)}</b> 的訓練紀錄、課表和身體數據複製到另一個帳號。完成後舊帳號會停用，舊資料仍保留。</p>
-    ${targets.length ? `<h4>移到哪個帳號？</h4><div class="pick-list">${targets.map(t => `<button class="pick" data-pick="${esc(t.uid)}"><b>${esc(t.email)}</b><small>${STATUS_TEXT[t.status] || ''}</small></button>`).join('')}</div>`
+    ${targets.length ? `<h4>移到哪個帳號？</h4><div class="pick-list">${targets.map(t => `<button class="pick" data-pick="${esc(t.uid)}"><b>${esc(t.nickname || t.name || t.email)}</b><small>${esc(t.email)} · ${STATUS_TEXT[t.status] || ''}</small></button>`).join('')}</div>`
       : '<div class="empty sm">新帳號要先登入網站並送出申請，才會出現在這裡。</div>'}`);
   $$('#dlgBody .pick').forEach(b => b.onclick = async () => {
     const t = MEMBERS.find(x => x.uid === b.dataset.pick); if (!t) return;
@@ -1757,6 +1758,7 @@ async function firebaseBackend(cfg) {
       watch(cb) { return F.onSnapshot(F.collection(db, 'access'), s => cb(s.docs.map(accessDoc)), err => console.error('[SHARK members]', err)) },
       set(uid, patch) { return F.setDoc(F.doc(db, 'access', uid), { ...patch, decidedAt: F.serverTimestamp() }, { merge: true }) },
       remove(uid) { return F.deleteDoc(F.doc(db, 'access', uid)) },
+      rename(uid, nickname) { return F.setDoc(F.doc(db, 'access', uid), { nickname: nickname ? nickname.slice(0, 40) : F.deleteField() }, { merge: true }) },
       async copy(from, to) {
         const src = await readUser(from), dst = await readUser(to), ops = [];
         const targetHasData = dst.sessions.length > 0;
