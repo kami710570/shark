@@ -304,6 +304,7 @@ i.md{width:14px;height:14px}
 .seg button{border:0;background:none;padding:8px 2px;border-radius:8px;font-weight:800;color:var(--muted)}
 .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .seg.seg2{grid-template-columns:1fr 1fr;max-width:280px}
+.ex-head .ex-eq{display:block;margin-top:6px;width:auto;max-width:100%;padding:5px 30px 5px 10px;font-size:13px;min-height:0}
 
   </style>
 </head>
@@ -423,7 +424,7 @@ i.md{width:14px;height:14px}
         <label class="check"><input id="boardOn" type="checkbox"> 參加排行榜（關閉後其他人看不到你的次數與重量）</label>
         <p class="muted sm">登入帳號：<span id="acctInfo"></span>（只有你和管理員看得到）</p></div>
       <div id="membersCard" class="card pad hidden"><div class="card-h"><h3>成員</h3></div><div id="memberList"></div></div>
-      <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">加入你家裡或健身房有的器材，動作庫和 AI 課表只會用這些器材（自重動作不用加）。前面的勾勾＝目前可用，暫時沒有可以先取消。</p><div id="equipList" class="eq-list"></div></div>
+      <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">加入你家裡或健身房有的器材，動作庫和 AI 課表只會用這些器材（自重動作不用加）。前面的勾勾＝目前可用。</p><p class="muted sm">同類器材可以加好幾個（例如家裡的啞鈴和健身房的啞鈴），訓練時在動作卡片上選今天用哪個。啞鈴、槓鈴不管用哪一組都記在同一條紀錄；Cable 和器械每台重量不同，換一台就分開記。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>動作庫</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 自訂動作</button></div>
         <p class="muted sm">查看每個動作的訓練部位、做法與示範影片。</p>
         <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="">全部器材</option></select></div>
@@ -803,7 +804,26 @@ function partOf(x) {
   if (top('二頭') || top('三頭')) return 'arm';
   return 'core';
 }
-const histKey = (id, eqId) => { const d = exDef(id); return eqId && d && eqId !== d.eq ? id + '@' + eqId : id };
+// ---------- 器材的使用邏輯 ----------
+// 1. 同一類器材可以互相替換（例如家裡的啞鈴、健身房的啞鈴）；史密斯機自成一類
+// 2. 啞鈴、槓鈴的重量是絕對公斤數 → 不管用哪一組，都記在同一條紀錄
+//    滑輪、器械、有氧每台都不一樣 → 換一台就是另一條紀錄
+// 3. 每個動作預設用「上次用的器材」；加重級距與上限照當天用的器材計算
+const eqFamily = eq => !eq ? '' : eq.id === 'smith' ? 'smith' : eq.type;
+const SHARED_HIST = new Set(['dumbbell', 'barbell']);
+function eqChoices(def) { const fam = eqFamily(equip(def?.eq)); return fam ? state.equipment.filter(e => e.owned && eqFamily(e) === fam) : [] }
+const histKey = (id, eqId) => { const d = exDef(id); if (!eqId || !d || eqId === d.eq) return id; return SHARED_HIST.has(eqFamily(equip(eqId))) && eqFamily(equip(eqId)) === eqFamily(equip(d.eq)) ? id : id + '@' + eqId };
+function lastEqOf(id) {
+  let best = null;
+  state.sessions.forEach(s => { const e = (s.exercises || []).find(x => x.id === id); if (e?.eq && (!best || (s.date || '') > best.d || ((s.date || '') === best.d && (s.createdAt || 0) > best.t))) best = { d: s.date || '', t: s.createdAt || 0, eq: e.eq } });
+  return best?.eq || null;
+}
+function pickEq(id, itemEq) {
+  const d = exDef(id); if (!d) return itemEq;
+  const fam = eqFamily(equip(d.eq)), ok = q => q && owns(q) && eqFamily(equip(q)) === fam;
+  const last = lastEqOf(id);
+  return ok(last) ? last : ok(itemEq) ? itemEq : ok(d.eq) ? d.eq : (eqChoices(d)[0]?.id || itemEq || d.eq);
+}
 function loadSpec(kind, eq) {
   if (kind === 'db' || kind === 'db1') return { min: eq?.min ?? 0, max: eq?.max ?? 100, step: eq?.step || 2 };
   if (kind === 'stack') return { min: eq?.firstHead ? 1 : 0, max: eq?.levels || 20, step: 1 };
@@ -838,7 +858,7 @@ function dayText(s) {
   return f ? `${f.day.label}｜${f.day.title}` : (s.dayLabel ? `${s.dayLabel}｜${s.dayTitle || ''}` : s.day || '未分類');
 }
 function itemEntry(item) {
-  const def = exDef(item.ex), eq = item.eq || def?.eq;
+  const def = exDef(item.ex), eq = pickEq(item.ex, item.eq) || def?.eq;
   return { id: item.ex, eq, kind: kindFor(def, eq), min: +item.min || 1, max: +item.max || 12, sets: +item.sets || 1, start: item.start, note: item.note || '', name: def?.name || item.ex, side: !!def?.side };
 }
 function nextDayId() {
@@ -1127,9 +1147,11 @@ function detailHtml(id, note) {
 function exCardHtml(e, i) {
   const entry = entryOfEx(e), f = findDay(draft.day), item = f?.day.items[e.slot], note = item?.ex === e.id ? item.note : '';
   const meta = e.kind === 'cardio' ? '有氧' : `${e.sets.length} 組 · ${e.min}–${e.max} 下${entry.side ? '（每側）' : ''} · ${UNIT_SHORT[e.kind]}`;
-  const eqName = e.eq && e.eq !== exDef(e.id)?.eq ? ` · ${esc(equip(e.eq)?.name || '')}` : '';
+  // 有兩組以上同類器材時，卡片上直接選今天用哪一個
+  const choices = eqChoices(exDef(e.id)), opts = choices.some(q => q.id === e.eq) ? choices : [...choices, equip(e.eq)].filter(Boolean);
+  const eqName = choices.length > 1 ? `<select class="field ex-eq" aria-label="今天用的器材">${opts.map(q => `<option value="${esc(q.id)}" ${q.id === e.eq ? 'selected' : ''}>${esc(q.name)}</option>`).join('')}</select>` : '';
   return `<article class="card ex" data-i="${i}">
-    <div class="ex-head"><div><div class="ex-name">${esc(e.name)}</div><div class="ex-meta">${meta}${eqName}</div></div><div class="ex-time"><span>累積</span><strong>00:00</strong></div></div>
+    <div class="ex-head"><div><div class="ex-name">${esc(e.name)}</div><div class="ex-meta">${meta}</div>${eqName}</div><div class="ex-time"><span>累積</span><strong>00:00</strong></div></div>
     <div class="adv-wrap">${adviceHtml(e)}</div>
     <div class="sets">${setHeadHtml(e)}${e.sets.map((x, j) => setRowHtml(e, x, j)).join('')}</div>
     <div class="ex-actions"><button class="chip-btn" data-act="info">說明</button><button class="chip-btn" data-act="swap">替換</button><button class="chip-btn" data-act="addset">＋組</button><button class="chip-btn" data-act="delset">－組</button>${e.kind === 'cardio' ? '' : '<button class="chip-btn" data-act="apply">套用建議</button>'}<button class="chip-btn danger" data-act="remove">移除</button></div>
@@ -1195,7 +1217,7 @@ function onCardAction(ev) {
 
 // ---------- 替換／升階 ----------
 function replaceExercise(i, newId, { start, updateProgram, min, max }) {
-  const old = draft.exercises[i], def = exDef(newId), eq = def?.eq;
+  const old = draft.exercises[i], def = exDef(newId), eq = pickEq(newId);
   const entry = { id: newId, eq, kind: kindFor(def, eq), min: min ?? old.min, max: max ?? old.max, sets: old.sets.length, start, name: def?.name || newId };
   const fresh = newExercise(entry, old.slot);
   if (start != null && entry.kind !== 'bw' && entry.kind !== 'cardio' && !lastOf(entry)) fresh.sets.forEach(x => x.load = Number(start));
@@ -1250,6 +1272,14 @@ function openSwap(i, upgrade) {
   if ($('#upRange')) $('#upRange').onclick = () => { const a = +$('#upMin').value, b = +$('#upMax').value; if (!(a > 0 && b >= a)) return toast('次數區間不正確'); closeDialog(); changeRange(i, a, b) };
 }
 
+// 訓練卡片上換器材：還沒填的組改成新器材的建議重量
+function changeEq(i, eqId) {
+  const e = draft.exercises[i]; if (!e || e.eq === eqId) return;
+  e.eq = eqId;
+  if (e.kind !== 'bw' && e.kind !== 'cardio') { const adv = advise(entryOfEx(e)); e.sets.forEach(x => { if (!x.done && !hasReps(x)) x.load = adv.load }) }
+  saveDraft(); invalidate(); rerenderCard(i); toast(`今天改用「${equip(eqId)?.name || ''}」`);
+}
+
 // ---------- 當天加入／移除動作（只改今天；勾選才同步課表）----------
 function addExerciseToday() {
   if (!findDay(currentDay)) return toast('先到「課表」建立訓練日');
@@ -1266,7 +1296,7 @@ function addExerciseToday() {
       const f = findDay(draft.day), toProg = $('#axProg').checked && f;
       let slot = null;
       if (toProg) { f.day.items.push(cardio ? { ex: id, sets, min, max } : { ex: id, sets, min, max, note: '' }); slot = f.day.items.length - 1 }
-      draft.exercises.push(newExercise({ id, eq: def.eq, kind, min, max, sets, name: def.name, side: !!def.side }, slot));
+      draft.exercises.push(newExercise({ id, eq: pickEq(id), kind, min, max, sets, name: def.name, side: !!def.side }, slot));
       saveDraft(); closeDialog(); renderExercises();
       toast(toProg ? `已加入 ${def.name}（課表也已更新）` : `今天加做 ${def.name}`);
       $(`.ex[data-i="${draft.exercises.length - 1}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1698,14 +1728,13 @@ function renderProgram() {
     <button class="btn btn-light btn-sm" data-act="it-add">＋ 動作</button></div>`).join('') || '<div class="empty">還沒有訓練日</div>';
 }
 function itemHtml(it, k) {
-  const en = itemEntry(it), adv = advise(en), def = exDef(it.ex), sameType = state.equipment.filter(e => e.owned && e.type === equip(def?.eq)?.type);
-  const eqSel = sameType.length > 1 ? `<label>器材<select class="field it-eq">${sameType.map(e => `<option value="${esc(e.id)}" ${en.eq === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select></label>` : '';
+  const en = itemEntry(it), adv = advise(en), def = exDef(it.ex);
   const startField = en.kind === 'bw' || en.kind === 'cardio' ? '' : `<label>起點<input class="field it-start" type="number" step="any" value="${esc(it.start ?? '')}" placeholder="${esc(def?.start ?? '')}"></label>`;
   const range = en.kind === 'cardio' ? '' : `<label>次數<span class="rng"><input class="field it-min" type="number" value="${en.min}">–<input class="field it-max" type="number" value="${en.max}"></span></label>`;
   return `<div class="item" data-k="${k}">
     <div class="item-top"><button class="link it-name" data-act="it-change">${esc(en.name)}</button><div class="tools"><button class="icon-btn" data-act="it-info" aria-label="說明">i</button><button class="icon-btn" data-act="it-up" aria-label="上移">↑</button><button class="icon-btn" data-act="it-down" aria-label="下移">↓</button><button class="icon-btn" data-act="it-del" aria-label="刪除">✕</button></div></div>
     <div class="item-sub ${STATE_CLASS[adv.state]}">${en.kind === 'cardio' ? '' : '下次 '}${esc(adv.label)}${def ? '' : ' · ⚠ 動作不存在'}</div>
-    <div class="item-fields"><label>組<input class="field it-sets" type="number" min="1" max="10" value="${en.sets}"></label>${range}${startField}${eqSel}</div>
+    <div class="item-fields"><label>組<input class="field it-sets" type="number" min="1" max="10" value="${en.sets}"></label>${range}${startField}</div>
     <input class="field it-note" value="${esc(it.note || '')}" placeholder="個人提醒（選填）"></div>`;
 }
 function onProgramInput(ev) {
@@ -1720,7 +1749,6 @@ function onProgramInput(ev) {
   else if (el.classList.contains('it-max')) it.max = clamp(el.value || 1, 1, 300);
   else if (el.classList.contains('it-start')) { const v = n(el.value); if (v == null) delete it.start; else it.start = v }
   else if (el.classList.contains('it-note')) it.note = el.value;
-  else if (el.classList.contains('it-eq')) { if (el.value === exDef(it.ex)?.eq) delete it.eq; else it.eq = el.value; renderProgram() }
   if (ev.type === 'change' && it && it.min > it.max) { it.max = it.min; renderProgram() }
   persist(); programDirty = true;
 }
@@ -2495,6 +2523,11 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.02-6', date: '2026-10-02', title: '器材使用更簡單', items: [
+    '同類器材可以加好幾個（例如家裡的啞鈴、健身房的啞鈴），訓練時直接在動作卡片上選今天用哪一個；課表裡不用再設定器材。',
+    '啞鈴、槓鈴不管用哪一組，都記在同一條紀錄；加重幅度和上限照當天用的那組計算。',
+    'Cable 和器械每台重量不同，換一台就分開記，各自從起點開始建議。',
+    '每個動作會記住上次用的器材，下次自動帶入。'] },
   { v: '2026.10.02-5', date: '2026-10-02', title: '動作改依部位分類', items: [
     '動作庫和選動作的畫面改成依部位分組（胸、背、肩、手臂、腿、臀・腿後、核心、有氧），每個動作旁邊標示用的器材。',
     '動作庫可以只看某一種器材的動作，例如只看「掛片式器械」。',
@@ -2599,6 +2632,7 @@ $('#sessionDate').onchange = e => { const v = e.target.value; e.target.value = d
 $('#clearDraft').onclick = () => { if (!confirm('清空今天的輸入與計時？')) return; delete state.drafts[draftKey()]; persist(); renderDay() };
 $('#exerciseList').addEventListener('input', onSetInput);
 $('#exerciseList').addEventListener('change', onSetInput);
+$('#exerciseList').addEventListener('change', ev => { if (ev.target.classList.contains('ex-eq')) changeEq(+ev.target.closest('.ex').dataset.i, ev.target.value) });
 $('#exerciseList').addEventListener('click', onCardAction);
 $('#sessionNotes').oninput = e => { draft.notes = e.target.value; saveDraft() };
 $('#painFlag').onchange = e => { draft.pain = e.target.checked; saveDraft(); draft.exercises.forEach((_, i) => refreshCard(i)) };
