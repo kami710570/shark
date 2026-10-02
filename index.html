@@ -526,7 +526,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
   <script>
   window.SHARK_START = function (SAVED, SYNC) {
 // ===== 01 · 基本資料：肌群、器材、動作庫、預設課表 =====
-const SCHEMA = 12; // 12：雙出線 Cable 的頭配重改為第 0 格
+const SCHEMA = 13; // 12：雙出線 Cable 的頭配重改為第 0 格；13：滑輪比 2:1、可合併出線
 const MUSCLE_NAMES = ['胸', '背', '前肩', '側肩', '後肩', '二頭', '三頭', '股四頭', '腿後', '臀', '小腿', '核心'];
 
 // 器材類型 → 記錄方式
@@ -546,7 +546,7 @@ const EQUIP_PRESETS = [
   { id: 'db', name: '啞鈴', type: 'dumbbell', min: 2, max: 50, step: 2, desc: '成對的啞鈴，記每手重量' },
   { id: 'barbell', name: '槓鈴', type: 'barbell', bar: 20, step: 2.5, max: 300, desc: '奧林匹克槓 20 kg，記總重' },
   { id: 'smith', name: '史密斯機', type: 'barbell', bar: 0, step: 2.5, max: 300, desc: '槓重不確定就填 0' },
-  { id: 'cable', name: 'Cable 滑輪', type: 'stack', unit: 'kg', levels: 20, headLb: 0, plateLb: 5, firstHead: false, desc: '記第幾格，換算成 kg' },
+  { id: 'cable', name: 'Cable 滑輪', type: 'stack', unit: 'kg', levels: 20, headLb: 0, plateLb: 5, firstHead: false, ratio: 1, desc: '記第幾格，換算成 kg' },
   { id: 'machine', name: '插銷式器械', type: 'machine', bar: 0, step: 5, max: 150, desc: '胸推機、腿伸展、腿彎舉、蝴蝶機等，插銷選重量' },
   { id: 'loaded', name: '掛片式器械', type: 'machine', bar: 0, step: 5, max: 400, desc: '腿推機、哈克蹲、T 槓划船等，自己掛槓片' },
   { id: 'band', name: '彈力帶', type: 'band', bands: '最輕,輕,中,重,最重', desc: '依阻力由輕到重記錄，可以改成你手上彈力帶的顏色' },
@@ -557,7 +557,7 @@ const BW_EQUIP = { id: 'bw', name: '自重', type: 'none', owned: true }; // 自
 // 舊版（v10）資料第一次升級時沿用的器材（原本的家用設定）
 const LEGACY_EQUIPMENT = [
   { id: 'db', name: 'NÜO 啞鈴', type: 'dumbbell', owned: true, min: 2, max: 32, step: 2 },
-  { id: 'cable', name: '雙出線 Cable', type: 'stack', owned: true, levels: 18, headLb: 8, plateLb: 12.5, firstHead: false },
+  { id: 'cable', name: '雙出線 Cable', type: 'stack', owned: true, levels: 18, headLb: 8, plateLb: 12.5, firstHead: false, ratio: 2, merge: true },
   { id: 'bw', name: '自重／引體桿', type: 'none', owned: true },
   { id: 'barbell', name: '槓鈴', type: 'barbell', owned: false, bar: 20, step: 2.5, max: 200 },
   { id: 'ft', name: 'FT Ultimate 滑輪', type: 'stack', owned: false, levels: 20, headLb: 0, plateLb: 0 },
@@ -600,7 +600,7 @@ const LIB_ROWS = [
   // --- Cable（配重滑輪）---
   ['fly', 'Cable Fly', 'cable', '', '胸大肌內收', '兩側 Cable 固定同高；採前後站姿。', '手肘微彎固定，雙臂畫弧靠攏；控制伸展。', '變成推舉、肩膀前縮、拉得過深。', { sl: 'standing-cable-chest-fly|Chest|FrontDelt', start: 2 }],
   ['pulldown', '高位下拉', 'cable', '', '背闊肌、肱二頭、下斜方', '固定高位把手與座位；大腿穩定。', '先讓肩胛下沉，再把肘拉向身體兩側；控制回程。', '大幅後仰、聳肩、用手腕把桿拉下。', { sl: 'lat-pulldown-with-pronated-grip|Lats|Biceps RearDelt Forearms RotCuff', start: 5, next: ['pulldown_merged', 'chinup'] }],
-  ['pulldown_merged', '高位下拉（雙出線合併）', 'cable', '', '背闊肌、肱二頭', '用連接器把雙出線合併；同一格阻力約為一般的 2 倍。', '同高位下拉。', '同高位下拉。', { sl: 'lat-pulldown-with-pronated-grip|Lats|Biceps RearDelt Forearms RotCuff', start: 3 }],
+  ['pulldown_merged', '高位下拉（雙出線合併）', 'cable', '', '背闊肌、肱二頭', '用連接器把雙出線合併；同一格阻力約為一般的 2 倍。', '同高位下拉。', '同高位下拉。', { sl: 'lat-pulldown-with-pronated-grip|Lats|Biceps RearDelt Forearms RotCuff', start: 3, merged: true }],
   ['crow', 'Cable 窄握划船', 'cable', '', '背闊肌、中背、後三角', '滑輪低位，使用窄握中立把手；固定椅距與軀幹角度。', '胸口保持穩定，肩胛自然前伸後再將把手拉向下腹；控制回程。', '反覆後仰借力、聳肩、回程失控。', { sl: 'cable-close-grip-seated-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 4 }],
   ['cable_row1', 'Cable 單臂划船', 'cable', '', '背闊肌、中背', '滑輪中低位，單手握把。', '肩胛先後收，再把手肘拉向髖部。', '軀幹大幅旋轉。', { sl: 'one-handed-cable-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 2, side: true }],
   ['lateral', 'Cable 側平舉', 'cable', '', '三角肌中束', '低位單側 Cable，站在機器側邊。', '在肩胛平面把手臂往側邊抬到上臂約水平，慢慢下降，全程保持張力。', '甩動、聳肩、重量過大縮短範圍。', { sl: 'cable-lateral-raise|LatDelt|FrontDelt', start: 1, side: true }],
@@ -937,6 +937,8 @@ function migrate(src) {
   // v12：舊版家用「雙出線 Cable」原本設成「第 1 格只有頭配重」，實際上第 1 格＝頭配重＋第一塊（頭配重是第 0 格）
   // 紀錄存的是格數，改設定後重量會自動重算；只改一次，之後使用者自己改回來也不會再動
   if ((s.version || 0) < 12) out.equipment.forEach(e => { if (e.id === 'cable' && e.type === 'stack' && e.firstHead && e.headLb === 8 && e.plateLb === 12.5) e.firstHead = false });
+  // v13：同一台雙出線 Cable 是 2:1（手上是配重的一半），合併出線時 1:1
+  if ((s.version || 0) < 13) out.equipment.forEach(e => { if (e.id === 'cable' && e.type === 'stack' && e.headLb === 8 && e.plateLb === 12.5 && e.ratio == null) { e.ratio = 2; e.merge = true } });
   // 早期範本的 A／B 命名 → 改成有意義的名稱
   const OLD_NAMES = { '入門全身（啞鈴＋彈力帶＋徒手）': '居家入門（啞鈴＋彈力帶）', '徒手全身（不用器材）': '居家零器材（徒手）', '零器材徒手': '居家零器材（徒手）' };
   const OLD_DAYS = { 'A|全身 A': ['深蹲日', '全身・深蹲／推／划船'], 'B|全身 B': ['弓步日', '全身・弓步／臥推／拉'], 'A|徒手 A': ['深蹲日', '徒手・深蹲／伏地挺身／划船'], 'B|徒手 B': ['分腿日', '徒手・分腿蹲／屈體推／臀橋'] };
@@ -957,7 +959,18 @@ function migrate(src) {
 
 // ---------- 器材與動作查詢 ----------
 // 沒加入的器材用範本（視為沒有），讓舊紀錄與動作說明仍能正常顯示
-const equip = id => state.equipment.find(e => e.id === id) || (id === 'bw' ? BW_EQUIP : PRESET_BY_ID[id] ? { ...PRESET_BY_ID[id], owned: false } : null);
+const equip = id => {
+  if (typeof id === 'string' && id.endsWith(MERGED)) return mergedOf(equip(id.slice(0, -MERGED.length)));
+  return state.equipment.find(e => e.id === id) || (id === 'bw' ? BW_EQUIP : PRESET_BY_ID[id] ? { ...PRESET_BY_ID[id], owned: false } : null);
+};
+// 滑輪比：手上拉的重量＝配重 ÷ ratio（一般 1:1；雙出線、龍門架常見 2:1）
+// 雙出線可以合併成一條（比例減半，2:1 → 1:1）：訓練時在動作卡片上當成另一個器材選，紀錄分開記
+const MERGED = '~m';
+const canMerge = eq => !!eq && eq.type === 'stack' && !!eq.merge && (eq.ratio || 1) > 1;
+const mergedOf = b => b && b.type === 'stack' ? { ...b, id: b.id + MERGED, name: b.name + '（合併出線）', ratio: Math.max(1, (b.ratio || 1) / 2), owned: b.owned && canMerge(b), merged: true } : null;
+const TWO_HANDLE = new Set(['fly', 'cable_fly_low', 'cable_fly_high', 'cable_rear_fly', 'cable_y_raise', 'cable_press']); // 兩手各拉一條，不能合併
+// 動作實際用的器材：本身就是「合併出線」的動作（例如舊的合併下拉）一律用合併的比例
+const eqOf = (exId, eqId) => { const d = exDef(exId), id = eqId || d?.eq, q = equip(id); return d?.merged && q?.type === 'stack' && !q.merged ? mergedOf(q) : q };
 const owns = id => id === 'bw' || equip(id)?.owned === true;
 const exDef = id => state.customExercises[id] || LIBRARY[id] || null;
 const exName = (id, fb) => exDef(id)?.name || fb || id;
@@ -990,7 +1003,11 @@ function partOf(x) {
 // 3. 每個動作預設用「上次用的器材」；加重級距與上限照當天用的器材計算
 const eqFamily = eq => !eq ? '' : eq.id === 'smith' ? 'smith' : eq.type;
 const SHARED_HIST = new Set(['dumbbell', 'barbell']);
-function eqChoices(def) { const fam = eqFamily(equip(def?.eq)); return fam ? state.equipment.filter(e => e.owned && eqFamily(e) === fam) : [] }
+function eqChoices(def) {
+  const fam = eqFamily(equip(def?.eq)); if (!fam) return [];
+  const mergeOk = fam === 'stack' && !def.merged && !TWO_HANDLE.has(def.id);
+  return state.equipment.filter(e => e.owned && eqFamily(e) === fam).flatMap(e => mergeOk && canMerge(e) ? [e, mergedOf(e)] : [e]);
+}
 const histKey = (id, eqId) => { const d = exDef(id); if (!eqId || !d || eqId === d.eq) return id; return SHARED_HIST.has(eqFamily(equip(eqId))) && eqFamily(equip(eqId)) === eqFamily(equip(d.eq)) ? id : id + '@' + eqId };
 function lastEqOf(id) {
   let best = null;
@@ -1011,7 +1028,8 @@ function loadSpec(kind, eq) {
   return { min: 0, max: 200, step: 2.5 };
 }
 // 滑輪第 n 格的重量（單位 eq.unit，舊資料為 lb）；沒設定每格重量時回傳 null
-function stackLb(n, eq) { return eq?.plateLb ? +((eq.headLb || 0) + eq.plateLb * (eq.firstHead ? Math.max(0, n - 1) : n)).toFixed(1) : null }
+function stackRaw(n, eq) { return eq?.plateLb ? +((eq.headLb || 0) + eq.plateLb * (eq.firstHead ? Math.max(0, n - 1) : n)).toFixed(1) : null } // 配重片上的數字
+function stackLb(n, eq) { const w = stackRaw(n, eq); return w == null ? null : +(w / (eq.ratio || 1)).toFixed(1) } // 手上實際（÷ 滑輪比）
 // 彈力帶：由輕到重的名稱（例如顏色），第 n 級 = 第 n 個名稱
 const bandNames = eq => String(eq?.bands || '最輕,輕,中,重,最重').split(/[,，、]/).map(x => x.trim()).filter(Boolean);
 const stackUnit = eq => eq?.unit === 'kg' ? 'kg' : 'lb';
@@ -1027,7 +1045,7 @@ function setLabel(e, x) {
   if (e.kind === 'cardio') return [x.dur ? x.dur + ' 分' : '', x.level ? '檔 ' + x.level : '', x.dist ? x.dist + ' km' : '', x.hr ? '心率 ' + x.hr : ''].filter(Boolean).join(' · ') || '—';
   if (x.mode === 'pulldown') return `下拉第 ${x.load} 格`;
   if (e.kind === 'bw') return x.mode === 'assist' ? `${x.assist || '彈力帶'} 輔助` : x.mode === 'weighted' ? `+${fmt1(+x.load || 0)} kg` : '自重';
-  return fmtLoad(x.load, e.kind, equip(e.eq || exDef(e.id)?.eq));
+  return fmtLoad(x.load, e.kind, eqOf(e.id, e.eq));
 }
 
 // ---------- 課表查詢 ----------
@@ -1136,13 +1154,13 @@ function judge(sets, entry) {
   return { groups, ready, main, need, fast, hits: hitsOf(main), below: best < entry.min };
 }
 function stepLoad(load, entry, dir) {
-  const eq = equip(entry.eq), spec = loadSpec(entry.kind, eq);
+  const eq = eqOf(entry.id, entry.eq), spec = loadSpec(entry.kind, eq);
   const v = +clamp(Number(load) + dir * spec.step, spec.min, spec.max).toFixed(2);
   return { v, capped: v === Number(load) };
 }
 function groupLabel(g, entry) {
   if (entry.kind === 'bw') return g.mode === 'assist' ? `${g.assist || '彈力帶'} 輔助` : g.mode === 'weighted' ? `+${fmt1(g.load)} kg` : '自重';
-  return fmtLoad(g.load, entry.kind, equip(entry.eq));
+  return fmtLoad(g.load, entry.kind, eqOf(entry.id, entry.eq));
 }
 
 // 依進步規則給出建議。phase='next'：依歷史建議今天的重量；phase='live'：依本次輸入判斷下次
@@ -1159,13 +1177,13 @@ function verdict(r, entry, pain, phase) {
     }
     const n = stepLoad(g.load, entry, 1);
     if (n.capped) return { state: 'cap', load: g.load, label: lab(g), text: '已達器材上限：可升階' };
-    return { state: 'up', load: n.v, label: fmtLoad(n.v, entry.kind, equip(entry.eq)), text: phase === 'live' ? `達標，下次 ${fmtLoad(n.v, entry.kind, equip(entry.eq))}` : `上次 ${lab(g)} 達標` };
+    return { state: 'up', load: n.v, label: fmtLoad(n.v, entry.kind, eqOf(entry.id, entry.eq)), text: phase === 'live' ? `達標，下次 ${fmtLoad(n.v, entry.kind, eqOf(entry.id, entry.eq))}` : `上次 ${lab(g)} 達標` };
   }
   return null;
 }
 
 function advise(entry) {
-  const eq = equip(entry.eq), def = exDef(entry.id);
+  const eq = eqOf(entry.id, entry.eq), def = exDef(entry.id);
   if (entry.kind === 'cardio') {
     const last = lastOf(entry);
     return { state: 'info', label: last ? setLabel(last.ex, last.sets[0]) : '尚無紀錄', text: last ? `上次 ${last.session.date}` : '' };
@@ -2091,7 +2109,7 @@ function renderAiForm() {
 function saveAiForm() { state.prefs.ai = aiForm(); persist(); aiEdited = false; if (!$('#aiPrompt').classList.contains('hidden')) $('#aiPrompt').value = aiPrompt() }
 let aiEdited = false;
 function eqDesc(e) {
-  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} ${stackUnit(e)}，之後` : e.headLb ? `第 0 格為頭配重 ${e.headLb} ${stackUnit(e)}，` : ''}每格 +${e.plateLb} ${stackUnit(e)}` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : e.type === 'band' ? `：${bandNames(e).length} 種阻力（由輕到重：${bandNames(e).join('、')}）` : ''}`;
+  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} ${stackUnit(e)}，之後` : e.headLb ? `第 0 格為頭配重 ${e.headLb} ${stackUnit(e)}，` : ''}每格 +${e.plateLb} ${stackUnit(e)}` : ''}${(e.ratio || 1) > 1 ? `，滑輪比 ${e.ratio}:1（手上是配重的 1/${e.ratio}${canMerge(e) ? `；可合併出線成 ${e.ratio / 2}:1` : ''}）` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : e.type === 'band' ? `：${bandNames(e).length} 種阻力（由輕到重：${bandNames(e).join('、')}）` : ''}`;
 }
 function aiPrompt() {
   const f = aiForm(), eqs = state.equipment.filter(e => f.eq.includes(e.id));
@@ -2169,11 +2187,13 @@ function importAiProgram() {
 }
 
 // ---------- 設定：器材、自訂動作、資料 ----------
-// 滑輪：顯示換算結果，方便對照機器上的數字（預設頭配重是第 0 格，第 1 格＝頭配重＋第一塊）
+// 滑輪：顯示換算結果（手上實際的重量），方便對照機器上的數字（預設頭配重是第 0 格，第 1 格＝頭配重＋第一塊）
 function stackPreview(e) {
   if (!e.plateLb) return '沒填每格重量：只記第幾格，不換算重量，也不列入排行榜';
-  const lo = loadSpec('stack', e).min, u = stackUnit(e);
-  return '換算：' + [...new Set([lo, lo + 1, e.levels || 20])].map(n => `第 ${n} 格 ${stackLb(n, e)} ${u}`).join('、');
+  const lo = loadSpec('stack', e).min, u = stackUnit(e), r = e.ratio || 1, ns = [...new Set([lo, lo + 1, e.levels || 20])];
+  const list = q => ns.map(n => `第 ${n} 格 ${stackLb(n, q)} ${u}`).join('、');
+  if (r === 1) return '換算：' + list(e);
+  return `換算（${r}:1，手上是配重 ÷ ${r}）：${list(e)}` + (canMerge(e) ? `。合併出線時：${list(mergedOf(e))}` : '');
 }
 function renderSettings() {
   const rows = state.equipment.map((e, i) => {
@@ -2181,7 +2201,7 @@ function renderSettings() {
     const f = (k, label, unit, step = 'any') => `<label>${label}<span class="unit"><input class="field eq-f" data-k="${k}" type="number" step="${step}" value="${esc(e[k] ?? '')}">${unit}</span></label>`;
     const u = stackUnit(e);
     const params = e.type === 'dumbbell' ? f('min', '最輕', 'kg') + f('max', '最重', 'kg') + f('step', '每次加', 'kg')
-      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '頭配重', u) + f('plateLb', '每格', u) + `<label>單位<select class="field eq-unit"><option value="kg" ${u === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u === 'lb' ? 'selected' : ''}>lb</option></select></label><label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label><small class="muted eq-prev">${stackPreview(e)}</small>`
+      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '頭配重', u) + f('plateLb', '每格', u) + `<label>單位<select class="field eq-unit"><option value="kg" ${u === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u === 'lb' ? 'selected' : ''}>lb</option></select></label><label>滑輪比<select class="field eq-ratio">${[1, 2, 4].map(r => `<option value="${r}" ${(e.ratio || 1) === r ? 'selected' : ''}>${r}:1</option>`).join('')}</select></label><label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label>${(e.ratio || 1) > 1 ? `<label class="check sm"><input type="checkbox" class="eq-flag" data-k="merge" ${e.merge ? 'checked' : ''}>可合併出線（合併時 ${(e.ratio || 1) / 2}:1）</label>` : ''}<small class="muted eq-prev">${stackPreview(e)}</small><small class="muted eq-prev">滑輪比：把手拉 1 公尺，配重升 1 公尺＝1:1、升 50 公分＝2:1。</small>`
       : e.type === 'barbell' || e.type === 'machine' ? f('bar', '槓／起始重', 'kg') + f('step', '最小加重', 'kg') + f('max', '上限', 'kg')
       : e.type === 'band' ? `<label class="wide">由輕到重（用逗號分隔，例如：黃,紅,綠,藍,黑）<input class="field eq-t" data-k="bands" value="${esc(e.bands || '最輕,輕,中,重,最重')}"></label>` : '';
     return `<div class="eq-row ${e.owned ? '' : 'off'}" data-e="${i}"><div class="eq-top"><label class="check"><input type="checkbox" class="eq-owned" ${e.owned ? 'checked' : ''} title="目前可用"><input class="field eq-name" value="${esc(e.name)}"></label><span class="tag">${EQUIP_TYPES[e.type]?.label || ''}</span><button class="icon-btn" data-act="eq-del" aria-label="刪除">✕</button></div>${params ? `<div class="eq-params">${params}</div>` : ''}</div>`;
@@ -2204,8 +2224,9 @@ function onEquipInput(ev) {
   else if (el.classList.contains('eq-f')) { if (el.value === '') return; e[el.dataset.k] = Number(el.value) }
   else if (el.classList.contains('eq-flag')) e[el.dataset.k] = el.checked;
   else if (el.classList.contains('eq-unit')) { e.unit = el.value; renderSettings() }
+  else if (el.classList.contains('eq-ratio')) { e.ratio = Number(el.value) || 1; renderSettings() }
   else if (el.classList.contains('eq-t')) { if (!el.value.trim()) return; e[el.dataset.k] = el.value.trim() }
-  if (e.type === 'stack' && row.querySelector('.eq-prev')) row.querySelector('.eq-prev').textContent = stackPreview(e);
+  if (e.type === 'stack' && row.querySelector('.eq-prev')) { row.querySelector('.eq-prev').textContent = stackPreview(e); if (el.dataset.k === 'merge') renderSettings() }
   invalidate(); persist(); programDirty = true;
 }
 function onEquipClick(ev) {
@@ -2567,6 +2588,7 @@ const EQ_CAT_NAME = Object.fromEntries(BOARD_CATS);
 const boardCats = () => BOARD.mode === 'eq' ? BOARD_CATS : PART_CATS;
 const CAT_OF_EQ = { barbell: 'bb', db: 'db', smith: 'smith', cable: 'cable', machine: 'machine', loaded: 'machine', bw: 'bw' };
 const NO_RANK = new Set(['db_farmer', 'pallof', 'cable_woodchop']);
+const BOARD_ALIAS = { pulldown_merged: 'pulldown' }; // 換算成手上實際重量後，合併出線的下拉和一般下拉可以直接比
 const BW_RANK = new Set(['chinup', 'pullup', 'dips', 'nordic', 'hanging_raise']); // 比最多下
 const BW_WEIGHTED = new Set(['chinup', 'pullup', 'dips']); // 另有「負重」榜（比外加重量的估算 1RM）
 const COUNT_MIN_MS = 30 * 60000, E1RM_REPS = 12, BOARD_HOURS = [7, 12, 18, 22], BOARD_WRITE_GAP = 30 * 60000;
@@ -2600,7 +2622,7 @@ function boardSummary(skip = {}) {
       const d = LIBRARY[e.id], cat = d && CAT_OF_EQ[d.eq]; // 只排動作庫的動作（自訂動作每個人不同）
       if (!cat || e.kind === 'cardio' || NO_RANK.has(e.id)) return;
       if (cat === 'bw' ? (!BW_RANK.has(e.id) || e.kind !== 'bw') : (e.kind === 'bw' || (cat !== 'smith' && e.eq === 'smith'))) return;
-      const eq = e.kind === 'stack' ? equip(e.eq || d.eq) : null;
+      const eq = e.kind === 'stack' ? eqOf(e.id, e.eq) : null, key = BOARD_ALIAS[e.id] || e.id;
       (e.sets || []).forEach(x => {
         if (x.done === false || !hasReps(x)) return;
         const r = Math.round(Number(x.reps)); if (!(r >= 1 && r <= 100)) return;
@@ -2611,9 +2633,9 @@ function boardSummary(skip = {}) {
           if (add > 0 && BW_WEIGHTED.has(e.id)) put(e.id + '+w', { d: s.date, w: add, r, v: half(e1rm(add, r)) });
           return;
         }
-        const w = e.kind === 'stack' ? stackKg(Number(x.load) || 0, eq) : Number(x.load) || 0; // 滑輪換算成 kg；沒設定每格重量就不排
+        const w = e.kind === 'stack' ? stackKg(Number(x.load) || 0, eq) : Number(x.load) || 0; // 滑輪換算成手上實際的 kg（已 ÷ 滑輪比）；沒設定每格重量就不排
         if (!(w > 0)) return;
-        put(e.id, { d: s.date, w, r, v: half(e1rm(w, r)) });
+        put(key, { d: s.date, w, r, v: half(e1rm(w, r)) });
       });
     });
   });
@@ -2835,6 +2857,10 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.03-7', date: '2026-10-03', title: 'Cable 滑輪比與合併出線', items: [
+    '「設定 → 器材」的 Cable 可以設定滑輪比（1:1、2:1、4:1）：2:1 的機器，手上拉的是配重的一半，顯示的重量和排行榜都照手上實際的重量算。',
+    '雙出線可以勾「可合併出線」：訓練時在動作卡片上選「（合併出線）」，比例變成 1:1，紀錄和加重建議分開記。兩手各拉一條的動作（例如 Cable Fly）不會出現這個選項。',
+    '舊的家用「雙出線 Cable」已設為 2:1、可合併出線；以前的「高位下拉（雙出線合併）」照 1:1 計算，排行榜上和高位下拉一起比。'] },
   { v: '2026.10.03-6', date: '2026-10-03', title: '教學標出重點', items: [
     '使用教學的重點改成粗體加深，要按的按鈕和位置用小標籤標示，掃一眼就知道要按哪裡；部分說明也縮短了。',
     'Cable 沒填頭配重時，最輕就是第 1 格，不會建議降到第 0 格。'] },
