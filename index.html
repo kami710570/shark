@@ -267,25 +267,39 @@ body.touring .float-timer{display:none}
 .add-ex{display:block;width:100%;margin:12px 0;border-style:dashed;padding:12px}
 @media (max-width:560px){.ex-actions{gap:5px}.ex-actions .chip-btn{padding:4px 9px}}
 /* 排行榜 */
-.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:var(--surface2);border:1px solid var(--line);border-radius:11px;margin:4px 0 10px}
-.seg button{border:0;background:none;padding:8px 2px;border-radius:8px;font-weight:800;color:var(--muted)}
-.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:6px 0 12px}
+.cat{position:relative;display:grid;justify-items:start;gap:3px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);text-align:left;min-height:116px}
+.cat:hover{border-color:var(--teal)}.cat svg{width:30px;height:30px;fill:none;stroke:var(--teal);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:4px}
+.cat b{font-size:16px}.cat small{color:var(--muted);font-size:12px}
+.cat-medals{display:flex;gap:8px;margin-top:4px;min-height:18px}.mcount{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800}
+.md{display:inline-grid;place-items:center;border-radius:50%;color:#3a2a00;font-weight:900}
+i.md{width:14px;height:14px}
+.md.m1{background:radial-gradient(circle at 35% 30%,#fff2b3,#f5c542 45%,#c89512);box-shadow:0 0 0 2px #e8b52f55}
+.md.m2{background:radial-gradient(circle at 35% 30%,#ffffff,#cfd6dd 45%,#8f9aa5);color:#2b333b;box-shadow:0 0 0 2px #c9d1d955}
+.md.m3{background:radial-gradient(circle at 35% 30%,#ffd9bd,#d99a6c 45%,#9c5a2c);color:#3d2210;box-shadow:0 0 0 2px #d99a6c55}
 .board-sub{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .chip-btn.on{background:var(--teal);border-color:var(--teal);color:#fff}
 .rank-list{display:grid;gap:6px}
-.rank-row{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
-.rank-row.me{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 8%,var(--surface))}
+.rank-row{display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.rank-row.top{padding:12px}.rank-row.me{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 8%,var(--surface))}
 .rank-row .rn{min-width:0}.rank-row .rn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rank-row .rn small{display:block;color:var(--muted);font-size:12px}.rank-row .rn small.acct{opacity:.8}
 .rank-row .rv{font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}.rank-row .rv small{font-size:12px;color:var(--muted);margin-left:3px;font-weight:600}
 .rk{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;color:var(--muted);background:var(--surface2)}
-.rk1{background:#f5c542;color:#4a3700}.rk2{background:#c9d1d9;color:#2b333b}.rk3{background:#d99a6c;color:#3d2210}
+.rk.md{width:32px;height:32px;font-size:14px}
+.my-rank{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(560px,calc(100% - 32px));display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--teal);border-radius:14px;background:color-mix(in srgb,var(--teal) 14%,var(--surface));box-shadow:var(--shadow);z-index:30;font-size:14px}
+.my-rank b{margin-left:auto;font-size:18px;white-space:nowrap}.my-rank b small{font-size:12px;color:var(--muted);margin-left:3px}
+.my-rank[hidden]{display:none}
 .tabs{grid-template-columns:repeat(6,1fr)}
+@media (max-width:560px){.cat-grid{grid-template-columns:1fr 1fr}.cat{min-height:108px;padding:12px}}
 /* 更新紀錄 */
 .log{padding:8px 0;border-top:1px solid var(--line)}.log:first-child{border-top:0;padding-top:0}
 .log-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .log ul{margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6}
 .log-more summary{cursor:pointer;color:var(--muted);font-size:13px;padding:8px 0}
+[hidden]{display:none!important}
+.rk.md{color:#3a2a00}.rk.md.m2{color:#2b333b}.rk.md.m3{color:#3d2210}
+.key-select{display:flex;align-items:center;gap:10px;width:100%}.key-select span{white-space:nowrap;color:var(--muted);font-size:13px;font-weight:700}.key-select select{flex:1;min-width:0}
 
   </style>
 </head>
@@ -385,14 +399,17 @@ body.touring .float-timer{display:none}
 
     <section id="boardView" class="view hidden">
       <div class="card pad">
-        <div class="card-h"><h3>排行榜</h3><button id="boardRefresh" class="btn btn-light btn-sm" hidden>立即更新</button></div>
+        <div class="card-h"><h3 id="boardTitle">排行榜</h3><div class="row-inline"><button id="boardBack" class="btn btn-light btn-sm" data-bcat-back hidden>← 全部項目</button><button id="boardRefresh" class="btn btn-light btn-sm" hidden>立即更新</button></div></div>
         <p id="boardMe" class="muted sm"></p>
-        <div id="boardTabs" class="seg"><button data-btab="count">次數</button><button data-btab="bb">槓鈴</button><button data-btab="db">啞鈴</button><button data-btab="bw">自重</button></div>
-        <div id="boardSub" class="board-sub"></div>
-        <div id="boardList" class="rank-list"></div>
-        <p id="boardNote" class="muted sm"></p>
+        <div id="boardCats" class="cat-grid"></div>
+        <div id="boardDetail" hidden>
+          <div id="boardSub" class="board-sub"></div>
+          <div id="boardList" class="rank-list"></div>
+          <p id="boardNote" class="muted sm"></p>
+        </div>
         <p id="boardWhen" class="muted sm"></p>
       </div>
+      <div id="boardMine" class="my-rank" hidden></div>
     </section>
 
     <section id="settingsView" class="view hidden">
@@ -401,7 +418,7 @@ body.touring .float-timer{display:none}
         <label class="check"><input id="boardOn" type="checkbox"> 參加排行榜（關閉後其他人看不到你的次數與重量）</label>
         <p class="muted sm">登入帳號：<span id="acctInfo"></span>（只有你和管理員看得到）</p></div>
       <div id="membersCard" class="card pad hidden"><div class="card-h"><h3>成員</h3></div><div id="memberList"></div></div>
-      <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">勾選你有的器材；重量上限與加重幅度會用在進步建議。</p><div id="equipList" class="eq-list"></div></div>
+      <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">加入你家裡或健身房有的器材，動作庫和 AI 課表只會用這些器材（自重動作不用加）。前面的勾勾＝目前可用，暫時沒有可以先取消。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>動作庫</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 自訂動作</button></div>
         <p class="muted sm">查看每個動作的訓練部位、做法與示範影片。</p>
         <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="">全部器材</option></select></div>
@@ -435,17 +452,30 @@ const SCHEMA = 11;
 const MUSCLE_NAMES = ['胸', '背', '前肩', '側肩', '後肩', '二頭', '三頭', '股四頭', '腿後', '臀', '小腿', '核心'];
 
 // 器材類型 → 記錄方式
-// db: 啞鈴每手 kg｜db1: 單顆啞鈴 kg｜stack: 配重格數｜plate: 槓鈴總重 kg｜bw: 自重｜cardio: 有氧
+// db: 啞鈴每手 kg｜db1: 單顆啞鈴 kg｜stack: 配重格數｜plate: 總重 kg｜bw: 自重｜cardio: 有氧
 const EQUIP_TYPES = {
   dumbbell: { label: '啞鈴', kind: 'db' },
-  stack: { label: '配重滑輪', kind: 'stack' },
   barbell: { label: '槓鈴／史密斯', kind: 'plate' },
-  machine: { label: '插片式機械', kind: 'plate' },
+  stack: { label: '滑輪（記格數）', kind: 'stack' },
+  machine: { label: '器械（記 kg）', kind: 'plate' },
   none: { label: '自重', kind: 'bw' },
   cardio: { label: '有氧器材', kind: 'cardio' },
 };
-
-const DEFAULT_EQUIPMENT = [
+// 常見器材範本：新帳號預設沒有任何器材，從這裡加入自己有的；動作庫用這些 id
+// stack 的 headLb / plateLb 單位看 unit（舊資料沒有 unit = lb）
+const EQUIP_PRESETS = [
+  { id: 'db', name: '啞鈴', type: 'dumbbell', min: 2, max: 50, step: 2, desc: '成對的啞鈴，記每手重量' },
+  { id: 'barbell', name: '槓鈴', type: 'barbell', bar: 20, step: 2.5, max: 300, desc: '奧林匹克槓 20 kg，記總重' },
+  { id: 'smith', name: '史密斯機', type: 'barbell', bar: 0, step: 2.5, max: 300, desc: '槓重不確定就填 0' },
+  { id: 'cable', name: 'Cable 滑輪', type: 'stack', unit: 'kg', levels: 20, headLb: 0, plateLb: 5, firstHead: false, desc: '記第幾格，換算成 kg' },
+  { id: 'machine', name: '插銷式器械', type: 'machine', bar: 0, step: 5, max: 150, desc: '胸推機、腿伸展、腿彎舉、蝴蝶機等，插銷選重量' },
+  { id: 'loaded', name: '掛片式器械', type: 'machine', bar: 0, step: 5, max: 400, desc: '腿推機、哈克蹲、T 槓划船等，自己掛槓片' },
+  { id: 'bike', name: '飛輪', type: 'cardio', desc: '記時間、檔位、距離、心率' },
+];
+const PRESET_BY_ID = Object.fromEntries(EQUIP_PRESETS.map(e => [e.id, e]));
+const BW_EQUIP = { id: 'bw', name: '自重', type: 'none', owned: true }; // 自重動作不用器材，一律可用
+// 舊版（v10）資料第一次升級時沿用的器材（原本的家用設定）
+const LEGACY_EQUIPMENT = [
   { id: 'db', name: 'NÜO 啞鈴', type: 'dumbbell', owned: true, min: 2, max: 32, step: 2 },
   { id: 'cable', name: '雙出線 Cable', type: 'stack', owned: true, levels: 18, headLb: 8, plateLb: 12.5, firstHead: true },
   { id: 'bw', name: '自重／引體桿', type: 'none', owned: true },
@@ -502,7 +532,7 @@ const LIB_ROWS = [
   ['pallof', 'Pallof 抗旋轉推', 'cable', '', '腹斜肌、抗旋轉', '滑輪胸口高度，側站。', '雙手把握把推離胸口，停 2 秒再收回，身體不轉。', '身體跟著轉、聳肩。', { sl: 'pallof-press|Obliques Abs|', start: 1, side: true }],
   ['cable_kickback', 'Cable 後踢腿', 'cable', '', '臀大肌', '低位滑輪接腳踝帶。', '骨盆穩定，腿往後延伸夾臀。', '腰部過伸代替伸髖。', { sl: 'cable-glute-kickback|Glutes|Hams Adductors', start: 1, side: true }],
   // --- 自重 ---
-  ['chinup', '引體向上', 'bw', '', '背闊肌、肱二頭、握力', '自然反手／半反手握，先穩定懸垂。', '肩胛先下沉，將手肘拉向身體兩側，拉到下巴過桿；控制下降到手臂伸直。', '擺盪借力、跳起猛墜。', { sl: 'chin-up|Lats|Biceps RearDelt Forearms RotCuff' }],
+  ['chinup', '反手引體向上', 'bw', '', '背闊肌、肱二頭、握力', '自然反手／半反手握，先穩定懸垂。', '肩胛先下沉，將手肘拉向身體兩側，拉到下巴過桿；控制下降到手臂伸直。', '擺盪借力、跳起猛墜。', { sl: 'chin-up|Lats|Biceps RearDelt Forearms RotCuff' }],
   ['pushup', '伏地挺身', 'bw', '', '胸大肌、三頭、軀幹穩定', '雙手略寬於肩，從頭到腳維持直線。', '胸口朝地面下降，手肘沿舒服角度後移，再把地面推開。', '腰部塌陷、手肘完全外開。', { sl: 'push-up|Chest FrontDelt|Triceps Abs', next: ['pushup_decline', 'dips'] }],
   ['pushup_decline', '腳抬高伏地挺身', 'bw', '', '上胸、三頭', '雙腳放在椅上。', '同伏地挺身，保持身體直線。', '腰部塌陷。', { sl: 'decline-push-up|Chest FrontDelt|Triceps Abs', next: ['dips'] }],
   ['dips', '雙槓撐體', 'bw', '', '下胸、三頭', '雙槓或撐體架，身體微前傾。', '身體微前傾，控制下降到肩膀略低於手肘（不痛的範圍內）；肩膀下沉，手肘往後而非外開，再推起。', '下降過深到肩痛、聳肩、手肘外開。', { sl: 'bar-dip|Chest FrontDelt Triceps|' }],
@@ -572,20 +602,48 @@ const LIB_ROWS = [
   // --- 更多有氧 ---
   ['bike_hiit', '飛輪間歇', 'bike', '', '心肺、無氧耐力', '暖身 5 分鐘。', '例如 30 秒衝刺＋90 秒輕踩，重複 6–10 次；記總時間與檔位。', '暖身不足、姿勢塌掉。', { sl: '~stationary-bike||' }],
   ['jumprope', '跳繩', 'bw', '', '心肺、協調', '繩長：踩住中間，把手約到胸口。', '用手腕轉繩，腳尖輕跳。', '跳太高、手臂甩太大。', { kind: 'cardio' }],
+  // --- 健身房器械（插銷式：記機器上的 kg）---
+  ['machine_chest_press', '器械胸推', 'machine', '', '胸大肌、前三角', '先調整座椅，讓握把約在胸口中段高度。', '背貼椅背，把握把往前推到手臂伸直，再控制回到胸前。', '肩膀前聳、回程太快讓配重片撞擊。', { sl: 'machine-chest-press|Chest FrontDelt|Triceps', start: 20 }],
+  ['machine_fly', '蝴蝶機夾胸', 'machine', '', '胸大肌', '調整座椅，讓手臂打開時約在胸口高度。', '手肘微彎固定，背貼椅背，雙手在身體前方合攏，再慢慢打開。', '彎肘變成推、打開過深。', { sl: 'machine-chest-fly|Chest|FrontDelt', start: 15 }],
+  ['machine_shoulder_press', '器械肩推', 'machine', '', '三角肌前束', '調整座椅，讓握把起始約在肩膀高度。', '把握把往上推到手臂伸直，控制放下。', '過度拱腰、聳肩。', { sl: 'machine-shoulder-press|FrontDelt|Triceps LatDelt', start: 15 }],
+  ['machine_lateral', '器械側平舉', 'machine', '', '三角肌中束', '調整座椅，讓肩膀對齊機器轉軸，護墊靠在手肘外側。', '手臂往兩側抬到水平，慢慢放下。', '聳肩、重量太重縮短範圍。', { sl: 'machine-lateral-raise|LatDelt|FrontDelt', start: 10 }],
+  ['machine_reverse_fly', '反向飛鳥機', 'machine', '', '三角肌後束', '面向機器坐，握把調到肩高。', '手臂微彎，往兩側向後打開，再慢慢回來。', '聳肩、用身體後仰甩。', { sl: 'reverse-machine-fly|RearDelt RotCuff|Traps', start: 10 }],
+  ['machine_pulldown', '器械高位下拉', 'machine', '', '背闊肌', '調整大腿擋墊，握距略寬於肩。', '肩胛先下沉，手肘帶動把握把拉向胸口，底部夾背，再控制回去。', '身體大幅後仰、聳肩。', { sl: 'machine-lat-pulldown|Lats|Biceps RearDelt Forearms RotCuff', start: 20 }],
+  ['machine_row', '坐姿划船機', 'machine', '', '背闊肌、中背、後三角', '胸口靠墊，調整到手臂伸直剛好握到把手。', '肩胛先後收，再把把手拉向身體，控制回程。', '身體後仰借力、聳肩。', { sl: 'seated-machine-row|Lats Traps RearDelt|Biceps Forearms RotCuff', start: 20 }],
+  ['machine_curl', '器械二頭彎舉', 'machine', '', '肱二頭肌', '上臂平貼護墊，手肘對齊機器轉軸。', '控制地彎舉到頂端，放下時在配重片碰到前停住。', '屁股離座、甩動。', { sl: 'machine-bicep-curl|Biceps|Forearms', start: 10 }],
+  ['machine_triceps', '器械三頭伸展', 'machine', '三頭1', '肱三頭肌', '調整座椅，手肘對齊機器轉軸（坐姿撐體機則握把在身體兩側）。', '上臂固定，只伸直手肘到底，再控制回來。', '肩膀前聳、身體前傾借力。', { start: 15 }],
+  ['machine_crunch', '器械捲腹', 'machine', '', '腹直肌', '調整座椅，握把或護墊在胸前。', '用腹部把上半身往前捲，控制回來。', '只用手拉、用髖屈代替捲腹。', { sl: 'machine-crunch|Abs|Obliques', start: 15 }],
+  ['leg_ext', '腿伸展', 'machine', '', '股四頭肌', '膝蓋對齊機器轉軸，腳踝護墊在小腿下緣。', '背貼椅背，控制地把膝蓋伸直到底，再慢慢放下。', '甩動、臀部離座。', { sl: 'leg-extension|Quads|', start: 20 }],
+  ['seated_leg_curl', '坐姿腿彎舉', 'machine', '', '腿後肌', '膝蓋對齊機器轉軸，大腿壓墊固定。', '把小腿盡量往下彎到底，慢慢回來。', '回程太快、臀部抬起。', { sl: 'seated-leg-curl|Hams|', start: 20 }],
+  ['lying_leg_curl', '俯臥腿彎舉', 'machine', '', '腿後肌', '趴在機器上，膝蓋對齊機器轉軸。', '彎曲膝蓋把重量舉起，再慢慢放下。', '骨盆翹起、甩動。', { sl: 'lying-leg-curl|Hams|', start: 15 }],
+  ['machine_hip_thrust', '臀推機', 'machine', '', '臀大肌', '先調整機器，護墊在髖部。', '伸髖把護墊推向上方，頂端夾臀，控制放下。', '腰部過伸代替伸髖。', { sl: 'hip-thrust-machine|Glutes|Adductors Quads', start: 30 }],
+  ['hip_abd', '髖外展機', 'machine', '', '髖外展肌（臀中肌）', '坐好，護墊在膝蓋外側，手握把手。', '雙腿往外推開到最大，控制回來。', '身體前後晃、回程太快。', { sl: 'hip-abduction-machine|Abductors|Glutes', start: 20 }],
+  ['hip_add', '髖內收機', 'machine', '', '內收肌', '坐好，雙腿放在護墊外側。', '用大腿內側把護墊夾合，控制回來。', '張開幅度超過可控範圍。', { sl: 'hip-adduction-machine|Adductors|', start: 20 }],
+  ['machine_calf', '坐姿小腿機', 'machine', '', '小腿（比目魚肌）', '坐好，前腳掌踩在踏板上，護墊壓在大腿下緣。', '腳跟充分下降，再推到最高點停一下。', '彈震、範圍太短。', { sl: 'seated-calf-raise|Calves|', start: 20 }],
+  // --- 健身房器械（掛片式：記掛上的槓片總重）---
+  ['leg_press', '腿推機', 'loaded', '', '股四頭、臀肌', '背貼椅背，雙腳與肩同寬放在踏板中間。', '收緊核心，下放到大腿接近胸口，再用腳跟推回，膝蓋不鎖死。', '下背離開椅背、膝蓋內夾、鎖死膝蓋。', { sl: 'leg-press|Quads Glutes Adductors|Hams', start: 40, next: ['hack_squat'] }],
+  ['hack_squat', '哈克蹲', 'loaded', '', '股四頭、臀肌', '肩膀抵住護墊，雙腳與肩同寬，放在踏板稍前方。', '在姿勢穩定的範圍盡量蹲深，再伸直腿站起。', '腳跟離板、膝蓋內夾。', { sl: 'hack-squat|Quads Glutes Adductors|', start: 20 }],
+  ['t_bar_row', 'T 槓划船', 'loaded', '', '背闊肌、中背、後三角', '站上踏板，身體前傾，手臂伸直握住把手。', '把把手拉向胸腹之間，控制放下。', '圓背、用身體甩起。', { sl: 't-bar-row|Lats Traps RearDelt|Biceps LowBack Forearms RotCuff', start: 20 }],
+  // --- 更多槓鈴與自重 ---
+  ['bb_lunge', '槓鈴弓箭步', 'barbell', '', '股四頭、臀肌', '槓放上背，站直。', '向前跨一大步下沉，後膝不碰地，用前腳推回。', '前膝內夾、步幅太小。', { sl: 'barbell-lunge|Quads Glutes Adductors|', start: 20, side: true }],
+  ['bb_shrug', '槓鈴聳肩', 'barbell', '', '斜方肌', '手臂伸直，在身體前方握槓。', '肩膀直直往上提到最高，再放下。', '轉肩、用腿彈。', { sl: 'barbell-shrug|Traps|Forearms', start: 40 }],
+  ['bb_skull', '槓鈴仰臥臂屈伸', 'barbell', '', '肱三頭肌', '平躺，雙手握槓（直槓或 EZ 槓）伸直在胸口上方。', '上臂角度固定，把槓往頭後下放，再伸直回來。', '手肘外開、上臂前後擺。', { sl: 'lying-triceps-extension|Triceps|', start: 20 }],
+  ['pullup', '正手引體向上', 'bw', '', '背闊肌、握力', '正手握，握距略寬於肩，先穩定懸垂。', '挺胸看桿，拉到下巴過桿，控制下降到手臂伸直。', '擺盪借力、只做半程。', { sl: 'pull-up|Lats|Biceps RearDelt Forearms RotCuff' }],
+  ['back_ext', '背伸展（羅馬椅）', 'bw', '', '臀肌、下背', '調整護墊在大腿上緣，雙腳固定。', '不靠慣性慢慢下放，起身到身體一直線時夾臀。', '過度後仰、甩動。', { sl: 'back-extension|Glutes LowBack|Hams' }],
 ];
 
-const EN_NAMES = {"bench": "Dumbbell Bench Press", "db_pause_bench": "Paused Dumbbell Bench Press", "incline": "Low Incline Dumbbell Press", "db_fly": "Dumbbell Fly", "ohp": "Seated Dumbbell Shoulder Press", "db_lateral": "Dumbbell Lateral Raise", "db_reardelt": "Dumbbell Rear Delt Fly", "one_row": "One Arm Dumbbell Row", "db_pullover": "Dumbbell Pullover", "curl": "Dumbbell Supinated Curl", "hammer": "Hammer Curl", "db_ohext": "Dumbbell Overhead Triceps Extension", "db_shrug": "Dumbbell Shrug", "rdl": "Dumbbell Romanian Deadlift", "bstance": "B-Stance Dumbbell RDL", "sl_rdl": "Single Leg Dumbbell RDL", "rev_lunge": "Dumbbell Reverse Lunge", "db_stepup": "Dumbbell Step Up", "heel_squat": "Heels Elevated Dumbbell Squat", "pause_squat": "Paused Dumbbell Squat", "goblet": "Goblet Squat", "split": "Bulgarian Split Squat", "split_deficit": "Front Foot Elevated Bulgarian Split Squat", "db_hipthrust": "Dumbbell Hip Thrust", "calf1": "Single Leg Calf Raise", "calf2": "Calf Raise", "fly": "Cable Fly", "pulldown": "Lat Pulldown", "pulldown_merged": "Lat Pulldown", "crow": "Seated Cable Row Close Grip", "cable_row1": "Single Arm Cable Row", "lateral": "Cable Lateral Raise", "facepull": "Face Pull", "pushdown": "Cable Triceps Pushdown", "cable_ohext": "Cable Overhead Triceps Extension", "cable_curl": "Cable Curl", "crunch": "Cable Crunch", "pallof": "Pallof Press", "cable_kickback": "Cable Glute Kickback", "chinup": "Chin Up", "pushup": "Push Up", "pushup_decline": "Decline Push Up", "dips": "Dips", "deadbug": "Dead Bug", "core2": "Dead Bug", "hanging_raise": "Hanging Leg Raise", "plank": "Plank", "bb_squat": "Barbell Back Squat", "bb_front": "Barbell Front Squat", "bb_dl": "Conventional Deadlift", "bb_rdl": "Barbell Romanian Deadlift", "bb_bench": "Barbell Bench Press", "bb_incline": "Incline Barbell Bench Press", "bb_ohp": "Barbell Overhead Press", "bb_row": "Barbell Row", "bb_hipthrust": "Barbell Hip Thrust", "bb_curl": "Barbell Curl", "smith_squat": "Smith Machine Squat", "smith_bench": "Smith Machine Bench Press", "smith_incline": "Smith Machine Incline Press", "smith_split": "Smith Machine Split Squat", "smith_ohp": "Smith Machine Shoulder Press", "bike": "Indoor Cycling", "run": "Running", "db_arnold": "Arnold Press", "db_front_raise": "Dumbbell Front Raise", "db_chest_row": "Chest Supported Dumbbell Row", "db_skull": "Dumbbell Skull Crusher", "db_kickback": "Dumbbell Triceps Kickback", "db_incline_curl": "Incline Dumbbell Curl", "db_concentration": "Concentration Curl", "db_walk_lunge": "Dumbbell Walking Lunge", "db_sumo": "Dumbbell Sumo Squat", "db_farmer": "Farmers Walk", "cable_straight_pd": "Straight Arm Pulldown", "cable_pulldown1": "Single Arm Lat Pulldown", "cable_rear_fly": "Cable Rear Delt Fly", "cable_y_raise": "Cable Y Raise", "cable_fly_low": "Low to High Cable Fly", "cable_fly_high": "High to Low Cable Fly", "cable_press": "Standing Cable Chest Press", "cable_hammer": "Cable Rope Hammer Curl", "cable_woodchop": "Cable Woodchop", "cable_pullthrough": "Cable Pull Through", "inverted_row": "Inverted Row", "glute_bridge": "Glute Bridge", "nordic": "Nordic Hamstring Curl", "side_plank": "Side Plank", "bird_dog": "Bird Dog", "pike_pushup": "Pike Push Up", "bw_squat": "Bodyweight Squat", "bb_sumo_dl": "Sumo Deadlift", "bb_close_bench": "Close Grip Bench Press", "bb_good_morning": "Barbell Good Morning", "smith_rdl": "Smith Machine RDL", "smith_hipthrust": "Smith Machine Hip Thrust", "smith_calf": "Smith Machine Calf Raise", "smith_row": "Smith Machine Row", "bike_hiit": "Spin Bike HIIT", "jumprope": "Jump Rope"};
+const EN_NAMES = {"machine_chest_press": "Machine Chest Press", "machine_fly": "Machine Chest Fly", "machine_shoulder_press": "Machine Shoulder Press", "machine_lateral": "Machine Lateral Raise", "machine_reverse_fly": "Reverse Machine Fly", "machine_pulldown": "Machine Lat Pulldown", "machine_row": "Seated Machine Row", "machine_curl": "Machine Bicep Curl", "machine_triceps": "Machine Triceps Extension", "machine_crunch": "Machine Crunch", "leg_ext": "Leg Extension", "seated_leg_curl": "Seated Leg Curl", "lying_leg_curl": "Lying Leg Curl", "machine_hip_thrust": "Hip Thrust Machine", "hip_abd": "Hip Abduction Machine", "hip_add": "Hip Adduction Machine", "machine_calf": "Seated Calf Raise Machine", "leg_press": "Leg Press", "hack_squat": "Hack Squat", "t_bar_row": "T-Bar Row", "bb_lunge": "Barbell Lunge", "bb_shrug": "Barbell Shrug", "bb_skull": "Barbell Skull Crusher", "pullup": "Pull Up", "back_ext": "Back Extension", "bench": "Dumbbell Bench Press", "db_pause_bench": "Paused Dumbbell Bench Press", "incline": "Low Incline Dumbbell Press", "db_fly": "Dumbbell Fly", "ohp": "Seated Dumbbell Shoulder Press", "db_lateral": "Dumbbell Lateral Raise", "db_reardelt": "Dumbbell Rear Delt Fly", "one_row": "One Arm Dumbbell Row", "db_pullover": "Dumbbell Pullover", "curl": "Dumbbell Supinated Curl", "hammer": "Hammer Curl", "db_ohext": "Dumbbell Overhead Triceps Extension", "db_shrug": "Dumbbell Shrug", "rdl": "Dumbbell Romanian Deadlift", "bstance": "B-Stance Dumbbell RDL", "sl_rdl": "Single Leg Dumbbell RDL", "rev_lunge": "Dumbbell Reverse Lunge", "db_stepup": "Dumbbell Step Up", "heel_squat": "Heels Elevated Dumbbell Squat", "pause_squat": "Paused Dumbbell Squat", "goblet": "Goblet Squat", "split": "Bulgarian Split Squat", "split_deficit": "Front Foot Elevated Bulgarian Split Squat", "db_hipthrust": "Dumbbell Hip Thrust", "calf1": "Single Leg Calf Raise", "calf2": "Calf Raise", "fly": "Cable Fly", "pulldown": "Lat Pulldown", "pulldown_merged": "Lat Pulldown", "crow": "Seated Cable Row Close Grip", "cable_row1": "Single Arm Cable Row", "lateral": "Cable Lateral Raise", "facepull": "Face Pull", "pushdown": "Cable Triceps Pushdown", "cable_ohext": "Cable Overhead Triceps Extension", "cable_curl": "Cable Curl", "crunch": "Cable Crunch", "pallof": "Pallof Press", "cable_kickback": "Cable Glute Kickback", "chinup": "Chin Up", "pushup": "Push Up", "pushup_decline": "Decline Push Up", "dips": "Dips", "deadbug": "Dead Bug", "core2": "Dead Bug", "hanging_raise": "Hanging Leg Raise", "plank": "Plank", "bb_squat": "Barbell Back Squat", "bb_front": "Barbell Front Squat", "bb_dl": "Conventional Deadlift", "bb_rdl": "Barbell Romanian Deadlift", "bb_bench": "Barbell Bench Press", "bb_incline": "Incline Barbell Bench Press", "bb_ohp": "Barbell Overhead Press", "bb_row": "Barbell Row", "bb_hipthrust": "Barbell Hip Thrust", "bb_curl": "Barbell Curl", "smith_squat": "Smith Machine Squat", "smith_bench": "Smith Machine Bench Press", "smith_incline": "Smith Machine Incline Press", "smith_split": "Smith Machine Split Squat", "smith_ohp": "Smith Machine Shoulder Press", "bike": "Indoor Cycling", "run": "Running", "db_arnold": "Arnold Press", "db_front_raise": "Dumbbell Front Raise", "db_chest_row": "Chest Supported Dumbbell Row", "db_skull": "Dumbbell Skull Crusher", "db_kickback": "Dumbbell Triceps Kickback", "db_incline_curl": "Incline Dumbbell Curl", "db_concentration": "Concentration Curl", "db_walk_lunge": "Dumbbell Walking Lunge", "db_sumo": "Dumbbell Sumo Squat", "db_farmer": "Farmers Walk", "cable_straight_pd": "Straight Arm Pulldown", "cable_pulldown1": "Single Arm Lat Pulldown", "cable_rear_fly": "Cable Rear Delt Fly", "cable_y_raise": "Cable Y Raise", "cable_fly_low": "Low to High Cable Fly", "cable_fly_high": "High to Low Cable Fly", "cable_press": "Standing Cable Chest Press", "cable_hammer": "Cable Rope Hammer Curl", "cable_woodchop": "Cable Woodchop", "cable_pullthrough": "Cable Pull Through", "inverted_row": "Inverted Row", "glute_bridge": "Glute Bridge", "nordic": "Nordic Hamstring Curl", "side_plank": "Side Plank", "bird_dog": "Bird Dog", "pike_pushup": "Pike Push Up", "bw_squat": "Bodyweight Squat", "bb_sumo_dl": "Sumo Deadlift", "bb_close_bench": "Close Grip Bench Press", "bb_good_morning": "Barbell Good Morning", "smith_rdl": "Smith Machine RDL", "smith_hipthrust": "Smith Machine Hip Thrust", "smith_calf": "Smith Machine Calf Raise", "smith_row": "Smith Machine Row", "bike_hiit": "Spin Bike HIIT", "jumprope": "Jump Rope"};
 // ---------- 肌群來源 ----------
 // sl: 'StrengthLog 網址代號|主要肌群|次要肌群'，「~」開頭＝相近動作（同肌群，器材或細節不同）
 // 計算：主要 = 1 組、次要 = 0.5 組（Pelland et al. 2024/2025 分數計算法）；同一肌群取較大值
-// 不計入：前臂、下背、內收肌、髖屈肌、旋轉肌袖（不在 12 個統計肌群內）
+// 不計入：前臂、下背、內收肌、外展肌、髖屈肌、旋轉肌袖（不在 12 個統計肌群內）
 // 例外：髖鉸鏈（RDL、硬舉）中斜方肌只是握住重量 → 不算背
 const SRC_MUSCLES = {
   Chest: ['胸大肌', '胸'], Lats: ['背闊肌', '背'], Traps: ['斜方肌', '背'],
   FrontDelt: ['三角肌前束', '前肩'], LatDelt: ['三角肌中束', '側肩'], RearDelt: ['三角肌後束', '後肩'],
   Biceps: ['肱二頭肌', '二頭'], Triceps: ['肱三頭肌', '三頭'], Quads: ['股四頭肌', '股四頭'], Hams: ['腿後肌', '腿後'],
   Glutes: ['臀肌', '臀'], Calves: ['小腿', '小腿'], Abs: ['腹直肌', '核心'], Obliques: ['腹斜肌', '核心'],
-  Forearms: ['前臂屈肌'], LowBack: ['下背（豎脊肌）'], Adductors: ['內收肌'], HipFlex: ['髖屈肌'], RotCuff: ['旋轉肌袖'],
+  Abductors: ['髖外展肌'], Forearms: ['前臂屈肌'], LowBack: ['下背（豎脊肌）'], Adductors: ['內收肌'], HipFlex: ['髖屈肌'], RotCuff: ['旋轉肌袖'],
 };
 const SL_BASE = 'https://www.strengthlog.com/';
 function parseSource(sl) {
@@ -671,10 +729,10 @@ function migrateSession(s) {
   return s;
 }
 
-function mergeEquipment(saved) {
-  const list = Array.isArray(saved) ? clone(saved) : [];
-  DEFAULT_EQUIPMENT.forEach(d => { if (!list.some(x => x.id === d.id)) list.push(clone(d)) });
-  return list;
+// 器材清單只放使用者自己加入的；舊版（沒有清單、但有紀錄）沿用原本的家用器材
+function mergeEquipment(saved, legacy) {
+  if (Array.isArray(saved)) return clone(saved).filter(e => e && e.id);
+  return legacy ? clone(LEGACY_EQUIPMENT) : [];
 }
 
 function buildShark(settings = {}) {
@@ -692,7 +750,7 @@ function migrate(src) {
   const out = {
     version: SCHEMA,
     prefs: { theme: 'dark', ...(s.prefs || {}) },
-    equipment: mergeEquipment(s.equipment),
+    equipment: mergeEquipment(s.equipment, !!(s.settings || (s.sessions || []).length)),
     customExercises: Object.fromEntries(Object.entries(s.customExercises || {}).map(([k, x]) => [k, x?.muscles && '肩' in x.muscles ? { ...x, muscles: fixMuscles(x.muscles, x.name) } : x])),
     programs: Array.isArray(s.programs) && s.programs.length ? s.programs : [buildShark(s.settings)],
     activeProgram: s.activeProgram || 'shark',
@@ -713,7 +771,9 @@ function migrate(src) {
 }
 
 // ---------- 器材與動作查詢 ----------
-const equip = id => state.equipment.find(e => e.id === id) || null;
+// 沒加入的器材用範本（視為沒有），讓舊紀錄與動作說明仍能正常顯示
+const equip = id => state.equipment.find(e => e.id === id) || (id === 'bw' ? BW_EQUIP : PRESET_BY_ID[id] ? { ...PRESET_BY_ID[id], owned: false } : null);
+const owns = id => id === 'bw' || equip(id)?.owned === true;
 const exDef = id => state.customExercises[id] || LIBRARY[id] || null;
 const exName = (id, fb) => exDef(id)?.name || fb || id;
 function kindFor(def, eqId) {
@@ -727,11 +787,14 @@ function loadSpec(kind, eq) {
   if (kind === 'plate') return { min: eq?.bar || 0, max: eq?.max || 500, step: eq?.step || 2.5 };
   return { min: 0, max: 200, step: 2.5 };
 }
+// 滑輪第 n 格的重量（單位 eq.unit，舊資料為 lb）；沒設定每格重量時回傳 null
 function stackLb(n, eq) { return eq?.plateLb ? +((eq.headLb || 0) + eq.plateLb * (eq.firstHead ? Math.max(0, n - 1) : n)).toFixed(1) : null }
+const stackUnit = eq => eq?.unit === 'kg' ? 'kg' : 'lb';
+const stackKg = (n, eq) => { const w = stackLb(n, eq); return w == null ? null : stackUnit(eq) === 'kg' ? w : +(w / 2.20462).toFixed(1) };
 function fmtLoad(load, kind, eq) {
   if (kind === 'bw' || kind === 'cardio') return '自重';
   const n = Number(load) || 0;
-  if (kind === 'stack') { const lb = stackLb(n, eq); return `第 ${n} 格${lb ? `（${lb} lb）` : ''}` }
+  if (kind === 'stack') { const w = stackLb(n, eq); return `第 ${n} 格${w ? `（${w} ${stackUnit(eq)}）` : ''}` }
   return `${fmt1(n)} ${UNIT_SHORT[kind]}`;
 }
 function setLabel(e, x) {
@@ -1137,7 +1200,7 @@ function suggestStart(fromEx, toId) {
 }
 function openSwap(i, upgrade) {
   const e = draft.exercises[i], def = exDef(e.id), nexts = (def?.next || []).filter(id => exDef(id));
-  const owned = id => equip(exDef(id)?.eq)?.owned !== false;
+  const owned = id => owns(exDef(id)?.eq);
   const opts = nexts.map(id => `<button class="pick ${owned(id) ? '' : 'muted'}" data-pick="${id}"><b>${esc(exName(id))}</b><small>${esc(equip(exDef(id).eq)?.name || '')}${owned(id) ? '' : '（尚未擁有）'}</small></button>`).join('');
   const range = upgrade && e.kind !== 'cardio' ? `<h4>或：提高次數區間</h4><p class="muted sm">重量不變，改練更多下。</p><div class="row-inline"><input id="upMin" class="field" type="number" value="${e.max}"> – <input id="upMax" class="field" type="number" value="${e.max + 5}"><button class="btn btn-light btn-sm" id="upRange">套用</button></div>` : '';
   openDialog(upgrade ? '升階' : '替換動作', `
@@ -1511,7 +1574,7 @@ function pickExercise(cb, currentId) {
   const draw = () => {
     const q = $('#pkSearch').value.trim().toLowerCase(), mu = $('#pkMuscle').value, own = $('#pkOwned').checked;
     const list = Object.values(allExercises()).filter(x => (!q || x.name.toLowerCase().includes(q) || (x.en || '').toLowerCase().includes(q) || x.id.includes(q))
-      && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) >= 1)) && (!own || equip(x.eq)?.owned !== false));
+      && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) >= 1)) && (!own || owns(x.eq)));
     const groups = {}; list.forEach(x => (groups[equip(x.eq)?.name || '其他'] ||= []).push(x));
     $('#pkList').innerHTML = Object.entries(groups).map(([g, xs]) => `<div class="pick-group">${esc(g)}</div>` + xs.map(x => `<div class="pick-row"><button class="pick ${x.id === currentId ? 'on' : ''}" data-pick="${esc(x.id)}"><b>${esc(x.name)}</b><small>${Object.entries(x.muscles || {}).filter(([, v]) => v >= 1).map(([k]) => k).join('、') || (kindFor(x) === 'cardio' ? '有氧' : '')}</small></button><button class="icon-btn" data-info="${esc(x.id)}" aria-label="說明">i</button></div><div class="pick-info hidden" data-for="${esc(x.id)}"></div>`).join('')).join('') || '<div class="empty">找不到動作</div>';
   };
@@ -1551,7 +1614,7 @@ function renderLibrary() {
   if (!$('#libMuscle').options.length || $('#libMuscle').options.length < 2) $('#libMuscle').insertAdjacentHTML('beforeend', MUSCLE_NAMES.map(n => `<option>${n}</option>`).join('') + '<option value="有氧">有氧</option>');
   const q = $('#libSearch').value.trim().toLowerCase(), mu = $('#libMuscle').value, own = $('#libEq').value === 'owned';
   const list = Object.values(allExercises()).filter(x => (!q || x.name.toLowerCase().includes(q) || (x.en || '').toLowerCase().includes(q))
-    && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) > 0)) && (!own || equip(x.eq)?.owned !== false));
+    && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) > 0)) && (!own || owns(x.eq)));
   const groups = {}; list.forEach(x => (groups[equip(x.eq)?.name || '其他'] ||= []).push(x));
   $('#libList').innerHTML = Object.entries(groups).map(([g, xs]) => `<div class="pick-group">${esc(g)}（${xs.length}）</div>` + xs.map(x => `<button class="pick" data-show="${esc(x.id)}"><b>${esc(x.name)}${x.custom ? ' <span class="tag">自訂</span>' : ''}</b><small>${Object.entries(x.muscles || {}).filter(([, v]) => v >= 1).map(([k]) => k).join('、') || (kindFor(x) === 'cardio' ? '有氧' : '')}</small></button>`).join('')).join('') || '<div class="empty sm">找不到動作</div>';
 }
@@ -1676,17 +1739,20 @@ function aiForm() { const f = {}; AI_FIELDS.forEach(k => f[k] = $('#ai_' + k).va
 function renderAiForm() {
   const saved = state.prefs.ai || {};
   AI_FIELDS.forEach(k => { if (saved[k] != null) $('#ai_' + k).value = saved[k] });
-  const sel = saved.eq || state.equipment.filter(e => e.owned).map(e => e.id);
-  $('#ai_eq').innerHTML = state.equipment.map(e => `<label class="check sm"><input type="checkbox" value="${esc(e.id)}" ${sel.includes(e.id) ? 'checked' : ''}>${esc(e.name)}</label>`).join('');
+  const list = state.equipment.filter(e => e.id !== 'bw' && e.type !== 'none'), sel = (saved.eq || list.filter(e => e.owned).map(e => e.id)).filter(id => list.some(e => e.id === id));
+  $('#ai_eq').innerHTML = (list.length ? '' : '<span class="muted sm">還沒有加入器材，AI 只會用自重動作。可以先到「設定 → 器材」加入。</span>') + list.map(e => `<label class="check sm"><input type="checkbox" value="${esc(e.id)}" ${sel.includes(e.id) ? 'checked' : ''}>${esc(e.name)}</label>`).join('');
 }
 function saveAiForm() { state.prefs.ai = aiForm(); persist(); aiEdited = false; if (!$('#aiPrompt').classList.contains('hidden')) $('#aiPrompt').value = aiPrompt() }
 let aiEdited = false;
 function eqDesc(e) {
-  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} lb，之後` : ''}每格 +${e.plateLb} lb` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : ''}`;
+  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} ${stackUnit(e)}，之後` : e.headLb ? `基本重量 ${e.headLb} ${stackUnit(e)}，` : ''}每格 +${e.plateLb} ${stackUnit(e)}` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : ''}`;
 }
 function aiPrompt() {
   const f = aiForm(), eqs = state.equipment.filter(e => f.eq.includes(e.id));
-  const lib = Object.values(allExercises()).filter(x => f.eq.includes(x.eq)).map(x => `${x.id}｜${x.name}｜${Object.entries(x.muscles || {}).filter(([, v]) => v >= 1).map(([k]) => k).join('、') || '有氧'}`).join('\n');
+  // 可用動作：自重，加上勾選的器材（同類型的自訂器材也算，例如另一組啞鈴）
+  const customTypes = new Set(eqs.filter(e => !PRESET_BY_ID[e.id]).map(e => e.type));
+  const usable = x => x.eq === 'bw' || f.eq.includes(x.eq) || (customTypes.has(PRESET_BY_ID[x.eq]?.type) && x.eq !== 'smith' && x.eq !== 'loaded');
+  const lib = Object.values(allExercises()).filter(usable).map(x => `${x.id}｜${x.name}｜${Object.entries(x.muscles || {}).filter(([, v]) => v >= 1).map(([k]) => k).join('、') || '有氧'}`).join('\n');
   const opt = (label, v) => v ? `\n- ${label}：${v}` : '';
   return `請你扮演專業的肌力與體能教練，依照下面的條件幫我設計一份重量訓練課表。
 
@@ -1698,7 +1764,8 @@ function aiPrompt() {
 - 分配方式：${f.split}${opt('個人資料', f.who)}${opt('想加強的部位', f.focus)}${opt('要避開的動作或傷痛', f.avoid)}${opt('其他需求', f.note)}
 
 【我的器材】（只能使用這些）
-${eqs.map(eqDesc).join('\n') || '- 只有自重'}
+${eqs.map(eqDesc).join('\n') || '- 沒有器材，只用自重'}
+- 自重（不需器材）
 
 【設計原則】
 1. 每個訓練日的總組數要能在上述時間內完成。
@@ -1745,7 +1812,9 @@ function importAiProgram() {
       }
     }
     const [lo, hi] = String(it.reps || '8-12').split(/[-–~]/).map(Number);
-    return { ex: id, sets: clamp(it.sets || 3, 1, 10), min: lo || 8, max: hi || lo || 12, ...(it.note ? { note: String(it.note) } : {}) };
+    // 預設器材沒加入、但有同類型的自訂器材（例如另一組啞鈴）→ 指定用那個
+    const dEq = exDef(id)?.eq, alt = !owns(dEq) && PRESET_BY_ID[dEq] ? state.equipment.find(e => e.owned && !PRESET_BY_ID[e.id] && e.type === PRESET_BY_ID[dEq].type) : null;
+    return { ex: id, sets: clamp(it.sets || 3, 1, 10), min: lo || 8, max: hi || lo || 12, ...(alt ? { eq: alt.id } : {}), ...(it.note ? { note: String(it.note) } : {}) };
   }).filter(Boolean) }));
   const p = { id: uid('p'), name: String(data.name || 'AI 課表'), days };
   state.programs.push(p); $('#aiJson').value = '';
@@ -1755,14 +1824,16 @@ function importAiProgram() {
 
 // ---------- 設定：器材、自訂動作、資料 ----------
 function renderSettings() {
-  $('#equipList').innerHTML = state.equipment.map((e, i) => {
+  const rows = state.equipment.map((e, i) => {
+    if (e.id === 'bw' || e.type === 'none') return ''; // 自重不用器材
     const f = (k, label, unit, step = 'any') => `<label>${label}<span class="unit"><input class="field eq-f" data-k="${k}" type="number" step="${step}" value="${esc(e[k] ?? '')}">${unit}</span></label>`;
+    const u = stackUnit(e);
     const params = e.type === 'dumbbell' ? f('min', '最輕', 'kg') + f('max', '最重', 'kg') + f('step', '每次加', 'kg')
-      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '頭配重', 'lb') + f('plateLb', '每格', 'lb') + `<label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label>`
+      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '基本重量', u) + f('plateLb', '每格', u) + `<label>單位<select class="field eq-unit"><option value="kg" ${u === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u === 'lb' ? 'selected' : ''}>lb</option></select></label><label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label>`
       : e.type === 'barbell' || e.type === 'machine' ? f('bar', '槓／起始重', 'kg') + f('step', '最小加重', 'kg') + f('max', '上限', 'kg') : '';
-    const builtIn = DEFAULT_EQUIPMENT.some(d => d.id === e.id);
-    return `<div class="eq-row ${e.owned ? '' : 'off'}" data-e="${i}"><div class="eq-top"><label class="check"><input type="checkbox" class="eq-owned" ${e.owned ? 'checked' : ''}><input class="field eq-name" value="${esc(e.name)}"></label><span class="tag">${EQUIP_TYPES[e.type]?.label || ''}</span>${builtIn ? '' : '<button class="icon-btn" data-act="eq-del" aria-label="刪除">✕</button>'}</div>${params ? `<div class="eq-params">${params}</div>` : ''}</div>`;
+    return `<div class="eq-row ${e.owned ? '' : 'off'}" data-e="${i}"><div class="eq-top"><label class="check"><input type="checkbox" class="eq-owned" ${e.owned ? 'checked' : ''} title="目前可用"><input class="field eq-name" value="${esc(e.name)}"></label><span class="tag">${EQUIP_TYPES[e.type]?.label || ''}</span><button class="icon-btn" data-act="eq-del" aria-label="刪除">✕</button></div>${params ? `<div class="eq-params">${params}</div>` : ''}</div>`;
   }).join('');
+  $('#equipList').innerHTML = rows || '<div class="empty sm">還沒有加入器材。按右上角「＋ 器材」，選你家裡或健身房有的器材；自重動作不用加。</div>';
   renderLibrary();
   const old = oldDraftKeys().length; $('#clearDrafts').textContent = `清除舊草稿（${old}）`; $('#clearDrafts').disabled = !old;
   $('#driveBox').innerHTML = driveReady()
@@ -1779,21 +1850,34 @@ function onEquipInput(ev) {
   else if (el.classList.contains('eq-name')) e.name = el.value;
   else if (el.classList.contains('eq-f')) { if (el.value === '') return; e[el.dataset.k] = Number(el.value) }
   else if (el.classList.contains('eq-flag')) e[el.dataset.k] = el.checked;
+  else if (el.classList.contains('eq-unit')) { e.unit = el.value; renderSettings() }
   invalidate(); persist(); programDirty = true;
 }
 function onEquipClick(ev) {
   const b = ev.target.closest('[data-act="eq-del"]'); if (!b) return;
   const e = state.equipment[+b.closest('.eq-row').dataset.e];
-  if (Object.values(state.customExercises).some(x => x.eq === e.id)) return toast('還有自訂動作使用這個器材');
-  if (!confirm(`刪除器材「${e.name}」？`)) return;
-  state.equipment = state.equipment.filter(x => x !== e); persist(); renderSettings();
+  if (Object.values(state.customExercises).some(x => x.eq === e.id)) return toast('還有自訂動作使用這個器材，請先修改那些動作');
+  const preset = !!PRESET_BY_ID[e.id];
+  if (!confirm(`刪除器材「${e.name}」？${preset ? '用這個器材的動作會變成「沒有器材」，之後可以再從「＋ 器材」加回來（設定會恢復成預設）。' : ''}過去的紀錄不受影響。`)) return;
+  state.equipment = state.equipment.filter(x => x !== e);
+  state.programs.forEach(p => p.days.forEach(d => d.items.forEach(it => { if (it.eq === e.id) delete it.eq }))); // 課表裡指定這個器材的動作改回預設器材
+  invalidate(); persist('已刪除器材'); programDirty = true; renderSettings();
 }
+// 新增器材：先從常見器材挑，沒有的再自訂
 function addEquipment() {
-  openDialog('新增器材', `<label class="lab">名稱<input id="neName" class="field"></label><label class="lab">類型<select id="neType" class="field">${Object.entries(EQUIP_TYPES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label><div class="row-end"><button class="btn btn-primary" id="neOk">新增</button></div>`);
+  const have = new Set(state.equipment.map(e => e.id));
+  const presets = EQUIP_PRESETS.filter(p => !have.has(p.id));
+  openDialog('新增器材', `${presets.length ? `<h4>常見器材</h4><div class="pick-list">${presets.map(p => `<button class="pick" data-preset="${p.id}"><b>${esc(p.name)}</b><small>${esc(p.desc || '')}</small></button>`).join('')}</div>` : ''}
+    <h4>自訂器材</h4><p class="muted sm">例如第二組啞鈴、家裡的特定機台；之後在課表裡可以指定動作用這個器材。</p>
+    <label class="lab">名稱<input id="neName" class="field"></label><label class="lab">類型<select id="neType" class="field">${Object.entries(EQUIP_TYPES).filter(([k]) => k !== 'none').map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label><div class="row-end"><button class="btn btn-primary" id="neOk">新增</button></div>`);
+  $$('#dlgBody [data-preset]').forEach(b => b.onclick = () => {
+    const { desc, ...p } = PRESET_BY_ID[b.dataset.preset];
+    state.equipment.push({ ...clone(p), owned: true }); invalidate(); persist(`已加入${p.name}`); programDirty = true; closeDialog(); renderSettings();
+  });
   $('#neOk').onclick = () => {
-    const name = $('#neName').value.trim(), type = $('#neType').value; if (!name) return;
-    const base = { dumbbell: { min: 2, max: 30, step: 2 }, stack: { levels: 15, headLb: 0, plateLb: 10 }, barbell: { bar: 20, step: 2.5, max: 200 }, machine: { bar: 0, step: 5, max: 200 } }[type] || {};
-    state.equipment.push({ id: uid('eq'), name, type, owned: true, ...base }); persist('已新增器材'); closeDialog(); renderSettings();
+    const name = $('#neName').value.trim(), type = $('#neType').value; if (!name) return toast('請輸入名稱');
+    const base = { dumbbell: { min: 2, max: 30, step: 2 }, stack: { unit: 'kg', levels: 20, headLb: 0, plateLb: 5 }, barbell: { bar: 20, step: 2.5, max: 200 }, machine: { bar: 0, step: 5, max: 200 } }[type] || {};
+    state.equipment.push({ id: uid('eq'), name, type, owned: true, ...base }); persist('已新增器材'); programDirty = true; closeDialog(); renderSettings();
   };
 }
 function oldDraftKeys() { return staleDrafts() }
@@ -1945,8 +2029,8 @@ const TOUR = [
   { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
   { view: 'program', el: '.prog-bar', title: '課表', text: '可以有多份課表，選中的就是訓練頁使用的那份。「複製」後再修改最安全。' },
   { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
-  { view: 'board', el: '#boardTabs', title: '排行榜', text: '和家人朋友比訓練次數，以及槓鈴、啞鈴、自重主要動作的最佳紀錄。暱稱和要不要參加，都可以在「設定」更改。' },
-  { view: 'settings', el: '#equipList', title: '器材', text: '勾選你有的器材，並設定重量上限和每次加重的幅度，建議會依這些設定計算。' },
+  { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數，以及槓鈴、啞鈴、史密斯、Cable、器械、自重各動作的最佳紀錄，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
+  { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材，再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
   { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
   { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看，到「設定 → 使用教學」。' },
 ];
@@ -2088,50 +2172,72 @@ function backupReminder() {
 // 2. 每天固定時段更新（BOARD_HOURS）：同一時段內重開、重整、切換都用手機裡的快取，不再讀雲端
 // 3. 自己的摘要有變才寫，而且兩次寫入至少間隔 30 分鐘（一直改重量也只會寫一次）
 // 4. 自己那一列直接用本機資料，剛練完馬上看得到
-const BOARD_TABS = [
-  { id: 'count', name: '次數' },
-  { id: 'bb', name: '槓鈴', kind: 'plate', unit: 'kg', lifts: [['squat', '深蹲', ['bb_squat']], ['bench', '臥推', ['bb_bench']], ['dl', '硬舉', ['bb_dl', 'bb_sumo_dl']], ['ohp', '站姿肩推', ['bb_ohp']]] },
-  { id: 'db', name: '啞鈴', kind: 'db', unit: 'kg/手', lifts: [['dbbench', '啞鈴臥推', ['bench', 'db_pause_bench']], ['dbohp', '啞鈴肩推', ['ohp']], ['dbrow', '單臂划船', ['one_row']], ['dbsplit', '保加利亞分腿蹲', ['split', 'split_deficit']]] },
-  { id: 'bw', name: '自重', kind: 'bw', reps: true, lifts: [['pull', '引體向上', ['chinup']], ['dip', '雙槓撐體', ['dips']]] },
-];
-const BOARD_LIFT = {}; // 動作 id → { k, tab }
-BOARD_TABS.forEach(t => (t.lifts || []).forEach(([k, , ids]) => ids.forEach(id => BOARD_LIFT[id] = { k, tab: t })));
+// 排行分類：依動作的預設器材分；自重只收夠難的動作；計時或抗旋轉動作不比重量
+const ICON = {
+  count: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/>',
+  bb: '<path d="M1 12h22"/><rect x="4" y="6" width="3" height="12" rx="1"/><rect x="17" y="6" width="3" height="12" rx="1"/><path d="M7.5 9v6M16.5 9v6"/>',
+  db: '<path d="M8 12h8"/><rect x="2.5" y="7" width="3" height="10" rx="1"/><rect x="5.5" y="8.5" width="2.5" height="7" rx="1"/><rect x="18.5" y="7" width="3" height="10" rx="1"/><rect x="16" y="8.5" width="2.5" height="7" rx="1"/>',
+  smith: '<path d="M4 2v20M20 2v20M2 22h4M18 22h4M2 9h20"/><rect x="6.5" y="6.5" width="2.5" height="5" rx=".8"/><rect x="15" y="6.5" width="2.5" height="5" rx=".8"/>',
+  cable: '<circle cx="12" cy="4.5" r="2.5"/><path d="M12 7v9"/><path d="M8 20l4-4 4 4z"/><path d="M4 2v20M20 2v20"/>',
+  machine: '<rect x="15" y="2" width="6" height="20" rx="1"/><path d="M15 7h6M15 12h6M15 17h6"/><path d="M3 14h8v-6M3 18h9M6 18v3"/>',
+  bw: '<path d="M2 3h20"/><circle cx="12" cy="9" r="2"/><path d="M7 3l3.5 5M17 3l-3.5 5M12 11v6M9 22l3-5 3 5"/>',
+};
+const BOARD_CATS = [['count', '訓練次數'], ['bb', '槓鈴'], ['db', '啞鈴'], ['smith', '史密斯'], ['cable', 'Cable'], ['machine', '器械'], ['bw', '自重']];
+const CAT_OF_EQ = { barbell: 'bb', db: 'db', smith: 'smith', cable: 'cable', machine: 'machine', loaded: 'machine', bw: 'bw' };
+const NO_RANK = new Set(['db_farmer', 'pallof', 'cable_woodchop']);
+const BW_RANK = new Set(['chinup', 'pullup', 'dips', 'nordic', 'hanging_raise']); // 比最多下
+const BW_WEIGHTED = new Set(['chinup', 'pullup', 'dips']); // 另有「負重」榜（比外加重量的估算 1RM）
 const COUNT_MIN_MS = 30 * 60000, E1RM_REPS = 12, BOARD_HOURS = [7, 12, 18, 22], BOARD_WRITE_GAP = 30 * 60000;
 const e1rm = (w, r) => r <= 1 ? w : w * (1 + Math.min(r, E1RM_REPS) / 30); // Epley；超過 12 下以 12 下計（保守）
+const half = v => Math.round(v * 2) / 2;
 const boardSig = x => `${x.d}|${x.w}|${x.r}`;
+// 排行項目資訊：key = 動作 id，負重自重榜為「id+w」
+function rankInfo(key) {
+  const id = key.replace(/\+w$/, ''), d = LIBRARY[id], cat = d && CAT_OF_EQ[d.eq]; if (!cat) return null;
+  if (cat === 'bw') return key.endsWith('+w') ? { id, cat, name: '負重' + d.name, unit: 'kg', reps: false, add: true } : { id, cat, name: d.name, unit: '下', reps: true };
+  return { id, cat, name: d.name, unit: kindFor(d) === 'db' ? 'kg/手' : 'kg', reps: false };
+}
 // 一次訓練的時間：計時器總時間，或「第一次輸入／開始計時 → 保存」的時間，取較長者
 function sessionSpan(s) {
   const st = s.startedAt || s.timer?.sessionStartedAt;
   return Math.max(Number(s.summary?.duration) || 0, st && s.createdAt ? s.createdAt - st : 0);
 }
 
-// 依自己的紀錄算出排行榜摘要；skip = 管理員隱藏的紀錄 {lift: [sig]}
+// 依自己的紀錄算出排行榜摘要；skip = 管理員隱藏的紀錄 {key: [sig]}
 function boardSummary(skip = {}) {
   const months = {}, days = new Set(), lifts = {};
+  const put = (k, c) => {
+    if (skip[k]?.includes(boardSig(c))) return;
+    const cur = lifts[k]; if (!cur || c.v > cur.v || (c.v === cur.v && c.w > cur.w)) lifts[k] = c;
+  };
   state.sessions.forEach(s => {
     if (!s?.date) return;
     if (sessionSpan(s) >= COUNT_MIN_MS && !days.has(s.date)) { days.add(s.date); const m = s.date.slice(0, 7); months[m] = (months[m] || 0) + 1 }
     (s.exercises || []).forEach(e => {
-      const hit = BOARD_LIFT[e.id]; if (!hit || e.kind !== hit.tab.kind || e.eq === 'smith') return;
+      const d = LIBRARY[e.id], cat = d && CAT_OF_EQ[d.eq]; // 只排動作庫的動作（自訂動作每個人不同）
+      if (!cat || e.kind === 'cardio' || NO_RANK.has(e.id)) return;
+      if (cat === 'bw' ? (!BW_RANK.has(e.id) || e.kind !== 'bw') : (e.kind === 'bw' || (cat !== 'smith' && e.eq === 'smith'))) return;
+      const eq = e.kind === 'stack' ? equip(e.eq || d.eq) : null;
       (e.sets || []).forEach(x => {
         if (x.done === false || !hasReps(x)) return;
         const r = Math.round(Number(x.reps)); if (!(r >= 1 && r <= 100)) return;
-        if (hit.tab.reps) {
-          if (x.mode && x.mode !== 'bw' && x.mode !== 'weighted') return; // 彈力帶輔助、舊版滑輪下拉不算
-          const c = { d: s.date, w: x.mode === 'weighted' ? Number(x.load) || 0 : 0, r }, cur = lifts[hit.k];
-          if (skip[hit.k]?.includes(boardSig(c))) return;
-          if (!cur || r > cur.r || (r === cur.r && c.w > cur.w)) lifts[hit.k] = c;
-        } else {
-          const w = Number(x.load) || 0; if (w <= 0) return;
-          const c = { d: s.date, w, r, e: Math.round(e1rm(w, r) * 2) / 2 }, cur = lifts[hit.k];
-          if (skip[hit.k]?.includes(boardSig(c))) return;
-          if (!cur || c.e > cur.e || (c.e === cur.e && w > cur.w)) lifts[hit.k] = c;
+        if (cat === 'bw') {
+          const mode = x.mode || 'bw', add = mode === 'weighted' ? Number(x.load) || 0 : 0;
+          if (mode !== 'bw' && mode !== 'weighted') return; // 彈力帶輔助、舊版滑輪下拉不算
+          put(e.id, { d: s.date, w: add, r, v: r });
+          if (add > 0 && BW_WEIGHTED.has(e.id)) put(e.id + '+w', { d: s.date, w: add, r, v: half(e1rm(add, r)) });
+          return;
         }
+        const w = e.kind === 'stack' ? stackKg(Number(x.load) || 0, eq) : Number(x.load) || 0; // 滑輪換算成 kg；沒設定每格重量就不排
+        if (!(w > 0)) return;
+        put(e.id, { d: s.date, w, r, v: half(e1rm(w, r)) });
       });
     });
   });
-  return { v: 1, months, lifts };
+  return { months, lifts };
 }
+const packLifts = l => Object.fromEntries(Object.entries(l).map(([k, c]) => [k, [c.v, c.w, c.r, c.d]]));
+const unpackLifts = l => Object.fromEntries(Object.entries(l || {}).filter(([, a]) => Array.isArray(a) && a.length === 4).map(([k, [v, w, r, d]]) => [k, { v, w, r, d }]));
 
 // ---------- 更新時段 ----------
 const slotAt = (d, h) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h).getTime();
@@ -2148,7 +2254,7 @@ const hm = t => new Date(t).toLocaleTimeString('zh-TW', { hour: '2-digit', minut
 // ---------- 同步自己的摘要 ----------
 var boardReady = false; // var：避免啟動過程中 invalidate() 先被呼叫時出錯
 let boardTimer = null;
-const BOARD = { list: null, at: 0, mod: { names: {}, hide: {}, ban: {} }, tab: 'count', lift: {}, period: 'month', loading: false };
+const BOARD = { list: null, at: 0, mod: { names: {}, hide: {}, ban: {} }, cat: null, key: {}, period: 'month', loading: false, io: null };
 const lsGet = k => { try { return localStorage.getItem(k) } catch { return null } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v) } catch { } };
 const boardKey = (x = '') => 'shark-board-' + (SYNC.board?.uid || '') + x;
@@ -2163,7 +2269,7 @@ async function boardPush(force) {
     const wait = (Number(lsGet(boardKey('-t'))) || 0) + BOARD_WRITE_GAP - Date.now();
     if (wait > 0 && !force) { clearTimeout(boardTimer); boardTimer = setTimeout(boardPush, wait + 1000); return } // 30 分鐘內已寫過 → 到時再寫最新的
     const s = boardSummary(BOARD.mod.hide[B.uid] || {});
-    await B.save(B.uid, JSON.stringify({ n: myNick(), m: s.months, l: s.lifts }));
+    await B.save(B.uid, JSON.stringify({ n: myNick(), m: s.months, l: packLifts(s.lifts) }));
     lsSet(boardKey(), raw); lsSet(boardKey('-t'), String(Date.now()));
   } catch (e) { console.error('[SHARK board]', e) }
 }
@@ -2172,7 +2278,7 @@ async function boardPush(force) {
 function applyBoard(data, at) {
   let mod = {}; try { mod = JSON.parse(data._mod || '{}') || {} } catch { }
   BOARD.mod = { names: mod.names || {}, hide: mod.hide || {}, ban: mod.ban || {} };
-  BOARD.list = Object.entries(data).filter(([k]) => k !== '_mod').map(([uid, j]) => { let x = {}; try { x = JSON.parse(j) || {} } catch { } return { uid, name: x.n || '', months: x.m || {}, lifts: x.l || {} } });
+  BOARD.list = Object.entries(data).filter(([k]) => k !== '_mod').map(([uid, j]) => { let x = {}; try { x = JSON.parse(j) || {} } catch { } return { uid, name: x.n || '', months: x.m || {}, lifts: unpackLifts(x.l) } });
   BOARD.at = at;
 }
 async function loadBoard(force) {
@@ -2201,51 +2307,87 @@ function boardEntries() {
   return list.map(d => ({ ...d, show: mod.names[d.uid] || d.name || '未命名' }));
 }
 const ymd = d => d ? `${+d.slice(5, 7)}/${+d.slice(8, 10)}` : '';
+const MEDAL = ['', '金牌', '銀牌', '銅牌'];
+// 某一項的排名（並列同名次）
+function rankRows(key) {
+  const all = boardEntries(), mod = BOARD.mod;
+  let rows;
+  if (key.startsWith('count:')) {
+    const period = key.slice(6), ym = today().slice(0, 7), y = today().slice(0, 4);
+    const val = d => Object.entries(d.months).reduce((n, [m, c]) => n + (period === 'all' || (period === 'year' ? m.startsWith(y) : m === ym) ? c : 0), 0);
+    rows = all.map(d => ({ d, v: val(d), w: 0, text: `${val(d)}`, unit: '次', small: '' })).filter(r => r.v > 0);
+  } else {
+    const info = rankInfo(key);
+    rows = all.map(d => ({ d, x: d.lifts[key] })).filter(r => r.x && !(mod.hide[r.d.uid]?.[key] || []).includes(boardSig(r.x))).map(({ d, x }) => info.reps
+      ? { d, x, v: x.v, w: x.w, text: `${x.r}`, unit: '下', small: `${x.w ? `負重 +${fmt1(x.w)} kg · ` : ''}${ymd(x.d)}` }
+      : { d, x, v: x.v, w: x.w, text: fmt1(x.v), unit: info.unit, small: `實際 ${info.add ? '+' : ''}${fmt1(x.w)} ${info.unit} × ${x.r} · ${ymd(x.d)}` });
+  }
+  rows.sort((a, b) => b.v - a.v || b.w - a.w);
+  let rank = 0, prev = null;
+  rows.forEach((r, i) => { if (r.v !== prev) { rank = i + 1; prev = r.v } r.rank = rank });
+  return rows;
+}
+// 分類裡有紀錄的項目，依參加人數排序
+function catKeys(cat) {
+  if (cat === 'count') return ['count:month', 'count:year', 'count:all'];
+  const n = {};
+  boardEntries().forEach(d => Object.keys(d.lifts).forEach(k => { if (rankInfo(k)?.cat === cat) n[k] = (n[k] || 0) + 1 }));
+  BOARD.n = n;
+  return Object.keys(n).sort((a, b) => n[b] - n[a] || rankInfo(a).name.localeCompare(rankInfo(b).name, 'zh-Hant'));
+}
+function myMedals(cat) {
+  const me = SYNC.board?.uid, m = [0, 0, 0, 0];
+  (cat === 'count' ? ['count:month'] : catKeys(cat)).forEach(k => { const r = rankRows(k).find(x => x.d.uid === me); if (r && r.rank <= 3) m[r.rank]++ });
+  return m;
+}
+const medalHtml = m => [1, 2, 3].filter(i => m[i]).map(i => `<span class="mcount"><i class="md m${i}"></i>${m[i]}</span>`).join('');
 function renderBoard() {
   if (!$('#boardView')) return;
-  const tab = BOARD_TABS.find(t => t.id === BOARD.tab) || BOARD_TABS[0];
-  $$('#boardTabs [data-btab]').forEach(b => b.classList.toggle('on', b.dataset.btab === tab.id));
-  const off = !!state.prefs.boardOff;
+  const off = !!state.prefs.boardOff, cat = BOARD.cat;
   $('#boardMe').innerHTML = off ? '你目前<b>沒有參加</b>排行榜，別人看不到你的資料。<button class="link" data-bact="join">參加</button>'
     : `你在排行榜上顯示為「<b>${esc(BOARD.mod.names[SYNC.board?.uid] || myNick())}</b>」<button class="link" data-bact="nick">改暱稱</button>`;
-  let sub, rows, note;
-  const all = boardEntries();
-  if (tab.id === 'count') {
-    const P = [['month', '本月'], ['year', '今年'], ['all', '全部']], period = BOARD.period, ym = today().slice(0, 7), y = today().slice(0, 4);
-    sub = P.map(([k, n]) => `<button class="chip-btn ${k === period ? 'on' : ''}" data-bper="${k}">${n}</button>`).join('');
-    const val = d => Object.entries(d.months).reduce((n, [m, c]) => n + (period === 'all' || (period === 'year' ? m.startsWith(y) : m === ym) ? c : 0), 0);
-    rows = all.map(d => ({ d, v: val(d), text: `${val(d)}`, unit: '次', small: '' })).filter(r => r.v > 0);
-    note = '一次訓練要 30 分鐘以上才算（計時器時間，或第一次輸入到保存的時間），同一天只算 1 次。';
-  } else {
-    const lift = tab.lifts.find(l => l[0] === BOARD.lift[tab.id]) || tab.lifts[0];
-    sub = tab.lifts.map(([k, n]) => `<button class="chip-btn ${k === lift[0] ? 'on' : ''}" data-blift="${k}">${n}</button>`).join('');
-    const hide = uid => BOARD.mod.hide[uid]?.[lift[0]] || [];
-    rows = all.map(d => ({ d, x: d.lifts[lift[0]] })).filter(r => r.x && !hide(r.d.uid).includes(boardSig(r.x))).map(({ d, x }) => tab.reps
-      ? { d, x, v: x.r * 1000 + x.w, text: `${x.r}`, unit: '下', small: `${x.w ? `負重 +${fmt1(x.w)} kg · ` : ''}${ymd(x.d)}` }
-      : { d, x, v: x.e, text: fmt1(x.e), unit: tab.unit, small: `實際 ${fmt1(x.w)} ${tab.unit} × ${x.r} · ${ymd(x.d)}` });
-    note = tab.reps ? '單組最多下數（自重或負重，不含彈力帶輔助）。'
-      : `估算 1RM＝重量 ×（1＋次數÷30），超過 ${E1RM_REPS} 下以 ${E1RM_REPS} 下計；只算自由${tab.id === 'bb' ? '槓鈴（不含史密斯）' : '啞鈴，重量為每手'}。`;
-  }
-  rows.sort((a, b) => b.v - a.v);
-  let rank = 0, prev = null;
-  const admin = SYNC.board?.admin, acct = uid => { const m = MEMBERS.find(x => x.uid === uid); return uid === SYNC.board?.uid ? SYNC.email : m ? `${m.nickname || m.name || ''} · ${m.email}` : '' };
-  const html = rows.map((r, i) => {
-    if (r.v !== prev) { rank = i + 1; prev = r.v }
-    return `<div class="rank-row ${r.d.me ? 'me' : ''}" data-uid="${esc(r.d.uid)}"><span class="rk rk${rank}">${rank}</span>
-      <div class="rn"><b>${esc(r.d.show)}${r.d.me ? ' <span class="tag">你</span>' : ''}</b>${r.small ? `<small>${esc(r.small)}</small>` : ''}${admin && acct(r.d.uid) ? `<small class="acct">${esc(acct(r.d.uid))}</small>` : ''}</div>
-      <b class="rv">${r.text}<small>${r.unit}</small></b>${admin ? `<button class="icon-btn" data-bact="mod" aria-label="管理">⋯</button>` : ''}</div>`;
-  }).join('');
-  $('#boardSub').innerHTML = sub;
-  $('#boardList').innerHTML = BOARD.loading && !BOARD.list ? '<div class="empty">讀取中…</div>' : html || '<div class="empty">還沒有人有這項紀錄</div>';
-  $('#boardNote').textContent = note;
-  $('#boardWhen').textContent = `每天 ${BOARD_HOURS.map(h => h + ':00').join('、')} 更新${BOARD.at ? `，目前是 ${hm(BOARD.at)} 的資料，下次 ${hm(nextSlot())}` : ''}。你自己那一列即時更新。`;
   $('#boardRefresh').hidden = !SYNC.board?.admin;
+  $('#boardWhen').textContent = `每天 ${BOARD_HOURS.map(h => h + ':00').join('、')} 更新${BOARD.at ? `，目前是 ${hm(BOARD.at)} 的資料，下次 ${hm(nextSlot())}` : ''}。你自己那一列即時更新。`;
+  $('#boardBack').hidden = !cat; $('#boardCats').hidden = !!cat; $('#boardDetail').hidden = !cat;
+  $('#boardTitle').textContent = cat ? BOARD_CATS.find(c => c[0] === cat)[1] : '排行榜';
+  if (BOARD.loading && !BOARD.list) { $('#boardCats').innerHTML = '<div class="empty">讀取中…</div>'; return }
+  if (!cat) {
+    $('#boardCats').innerHTML = BOARD_CATS.map(([id, name]) => {
+      const keys = id === 'count' ? null : catKeys(id), sub = id === 'count' ? `本月 ${rankRows('count:month').length} 人上榜` : keys.length ? `${keys.length} 個動作有紀錄` : '還沒有紀錄';
+      return `<button class="cat" data-bcat="${id}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[id]}</svg><b>${name}</b><small>${sub}</small><span class="cat-medals">${medalHtml(myMedals(id))}</span></button>`;
+    }).join('');
+    $('#boardMine').hidden = true; return;
+  }
+  const keys = catKeys(cat), key = keys.includes(BOARD.key[cat]) ? BOARD.key[cat] : keys[0];
+  BOARD.key[cat] = key;
+  // 動作少就用小標籤；多的話改成下拉選單，畫面不會擠
+  const label = k => k.startsWith('count:') ? { month: '本月', year: '今年', all: '全部' }[k.slice(6)] : rankInfo(k).name;
+  $('#boardSub').innerHTML = keys.length > 6
+    ? `<label class="key-select"><span>動作（${keys.length}）</span><select id="boardKeySel" class="field">${keys.map(k => `<option value="${k}" ${k === key ? 'selected' : ''}>${esc(label(k))}・${BOARD.n[k]} 人</option>`).join('')}</select></label>`
+    : keys.map(k => `<button class="chip-btn ${k === key ? 'on' : ''}" data-bkey="${k}">${esc(label(k))}</button>`).join('');
+  const rows = key ? rankRows(key) : [], admin = SYNC.board?.admin;
+  const acct = uid => { const m = MEMBERS.find(x => x.uid === uid); return uid === SYNC.board?.uid ? SYNC.email : m ? `${m.nickname || m.name || ''} · ${m.email}` : '' };
+  $('#boardList').innerHTML = rows.map(r => `<div class="rank-row ${r.d.me ? 'me' : ''} ${r.rank <= 3 ? 'top' : ''}" data-uid="${esc(r.d.uid)}"><span class="rk ${r.rank <= 3 ? 'md m' + r.rank : ''}" title="${MEDAL[r.rank] || ''}">${r.rank}</span>
+      <div class="rn"><b>${esc(r.d.show)}${r.d.me ? ' <span class="tag">你</span>' : ''}</b>${r.small ? `<small>${esc(r.small)}</small>` : ''}${admin && acct(r.d.uid) ? `<small class="acct">${esc(acct(r.d.uid))}</small>` : ''}</div>
+      <b class="rv">${r.text}<small>${r.unit}</small></b>${admin ? '<button class="icon-btn" data-bact="mod" aria-label="管理">⋯</button>' : ''}</div>`).join('')
+    || `<div class="empty">${cat === 'count' ? '這段期間還沒有人上榜' : '這一類還沒有人有紀錄。用這類器材練完、保存後就會出現。'}</div>`;
+  const info = key && !key.startsWith('count:') ? rankInfo(key) : null;
+  $('#boardNote').textContent = cat === 'count' ? '一次訓練要 30 分鐘以上才算（計時器時間，或第一次輸入到保存的時間），同一天只算 1 次。'
+    : info?.reps ? '單組最多下數（自重或負重都算，不含彈力帶輔助）。'
+    : `估算 1RM＝重量 ×（1＋次數÷30），超過 ${E1RM_REPS} 下以 ${E1RM_REPS} 下計。${info?.add ? '只算外加的負重。' : cat === 'cable' ? '依各自器材設定的每格重量換算成 kg；沒設定每格重量的不列入。' : cat === 'machine' ? '不同廠牌機台的重量不完全可比，僅供參考。' : ''}`;
+  // 我的名次：自己那一列不在畫面上時，固定在下方顯示
+  const mine = rows.find(r => r.d.me), box = $('#boardMine');
+  BOARD.io?.disconnect(); BOARD.io = null;
+  if (!rows.length || off) { box.hidden = true; return }
+  box.innerHTML = mine ? `<span class="rk ${mine.rank <= 3 ? 'md m' + mine.rank : ''}">${mine.rank}</span><span>你的名次：第 ${mine.rank} 名 / ${rows.length} 人</span><b>${mine.text}<small>${mine.unit}</small></b>` : '<span>你還沒有這一項的紀錄</span>';
+  box.hidden = false;
+  const el = $('#boardList .rank-row.me');
+  if (el && 'IntersectionObserver' in window) { BOARD.io = new IntersectionObserver(([en]) => { box.hidden = en.isIntersecting }); BOARD.io.observe(el) }
 }
 function onBoardClick(ev) {
-  const t = ev.target.closest('[data-btab],[data-bper],[data-blift],[data-bact]'); if (!t) return;
-  if (t.dataset.btab) { BOARD.tab = t.dataset.btab; return renderBoard() }
-  if (t.dataset.bper) { BOARD.period = t.dataset.bper; return renderBoard() }
-  if (t.dataset.blift) { BOARD.lift[BOARD.tab] = t.dataset.blift; return renderBoard() }
+  const t = ev.target.closest('[data-bcat],[data-bkey],[data-bact]'); if (!t) return;
+  if (t.dataset.bcat) { BOARD.cat = t.dataset.bcat; renderBoard(); return window.scrollTo({ top: $('#boardView').offsetTop - 8, behavior: 'smooth' }) }
+  if (t.dataset.bkey) { BOARD.key[BOARD.cat] = t.dataset.bkey; return renderBoard() }
   const a = t.dataset.bact;
   if (a === 'nick') return editNickname();
   if (a === 'join') { state.prefs.boardOff = false; persist('已參加排行榜'); boardSoon(); renderBoard(); return }
@@ -2262,11 +2404,11 @@ function editNickname(after) {
 // ---------- 管理員：隱藏可疑紀錄、改暱稱、移出排行 ----------
 function openBoardMod(uid) {
   const d = boardEntries().find(x => x.uid === uid); if (!d) return;
-  const tab = BOARD_TABS.find(t => t.id === BOARD.tab), lift = tab.lifts ? (tab.lifts.find(l => l[0] === BOARD.lift[tab.id]) || tab.lifts[0]) : null;
-  const x = lift && d.lifts[lift[0]], m = MEMBERS.find(y => y.uid === uid), hidden = Object.values(BOARD.mod.hide[uid] || {}).flat().length;
+  const key = BOARD.key[BOARD.cat], info = key && !key.startsWith('count:') ? rankInfo(key) : null;
+  const x = info && d.lifts[key], m = MEMBERS.find(y => y.uid === uid), hidden = Object.values(BOARD.mod.hide[uid] || {}).flat().length;
   openDialog('排行榜管理', `<p><b>${esc(d.show)}</b><br><span class="muted sm">${esc(uid === SYNC.board.uid ? SYNC.email : m ? `${m.name || ''} · ${m.email}` : uid)}${BOARD.mod.names[uid] ? `<br>本人設定的暱稱：${esc(d.name)}` : ''}</span></p>
     <div class="pick-list">
-      ${x ? `<button class="pick" data-m="hide"><b>隱藏這筆${esc(lift[1])}紀錄</b><small>${tab.reps ? `${x.r} 下` : `${fmt1(x.w)} × ${x.r}`} · ${esc(x.d)}；對方下次同步後會改顯示次佳紀錄</small></button>` : ''}
+      ${x ? `<button class="pick" data-m="hide"><b>隱藏這筆「${esc(info.name)}」紀錄</b><small>${info.reps ? `${x.r} 下` : `${info.add ? '+' : ''}${fmt1(x.w)} × ${x.r}`} · ${esc(x.d)}；對方下次同步後會改顯示次佳紀錄</small></button>` : ''}
       <button class="pick" data-m="name"><b>改排行榜暱稱</b><small>${BOARD.mod.names[uid] ? '目前由你指定；留空恢復本人設定' : '覆蓋本人設定的暱稱'}</small></button>
       ${hidden ? `<button class="pick" data-m="unhide"><b>恢復被隱藏的紀錄（${hidden} 筆）</b></button>` : ''}
       <button class="pick" data-m="ban"><b>從排行榜移除</b><small>資料不刪除，只是不顯示</small></button>
@@ -2274,7 +2416,7 @@ function openBoardMod(uid) {
   $$('#dlgBody [data-m]').forEach(b => b.onclick = async () => {
     const mod = BOARD.mod, act = b.dataset.m;
     if (act === 'name') { closeDialog(); return askText('排行榜暱稱', '留空＝使用本人設定的暱稱', mod.names[uid] || '', async v => { v ? mod.names[uid] = v.slice(0, 20) : delete mod.names[uid]; await saveBoardMod('已更新暱稱') }, true) }
-    if (act === 'hide') { ((mod.hide[uid] ||= {})[lift[0]] ||= []).push(boardSig(x)) }
+    if (act === 'hide') ((mod.hide[uid] ||= {})[key] ||= []).push(boardSig(x));
     if (act === 'unhide') delete mod.hide[uid];
     if (act === 'ban') { if (!confirm(`把「${d.show}」移出排行榜？之後可以在「設定 → 成員」恢復。`)) return; mod.ban[uid] = true }
     closeDialog(); await saveBoardMod(act === 'hide' ? '已隱藏這筆紀錄' : act === 'ban' ? '已移出排行榜' : '已恢復');
@@ -2302,6 +2444,13 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.02-4', date: '2026-10-02', title: '器材與排行榜改版', items: [
+    '新帳號預設沒有器材：到「設定 → 器材」從常見器材（啞鈴、槓鈴、史密斯機、Cable、插銷式／掛片式器械、飛輪）加入；所有器材都可以刪除。',
+    '新增 25 個健身房常見動作：腿推機、哈克蹲、腿伸展、腿彎舉、器械胸推、蝴蝶機、坐姿划船機、T 槓划船、正手引體向上等。',
+    'Cable 的每格重量可以用 kg 設定；AI 課表指令只會列出你有的器材和自重動作。',
+    '排行榜改成分類方格：次數、槓鈴、啞鈴、史密斯、Cable、器械、自重；每個動作都有自己的排行，冷門動作也能拿第一。',
+    '前三名有金、銀、銅牌；自己排在後面時，畫面下方會固定顯示你的名次。',
+    '自重新增負重引體向上、負重雙槓撐體的排行。'] },
   { v: '2026.10.02-3', date: '2026-10-02', title: '新增更新紀錄', items: [
     '「設定」新增「更新紀錄」，可以看每次改版的內容；有新版本時，第一次打開會跳出提示。'] },
   { v: '2026.10.02-2', date: '2026-10-02', title: '排行榜與暱稱', items: [
@@ -2465,7 +2614,9 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 window.addEventListener('focus', onDayChange);
 $('#tourStart').onclick = startTour;
 $('#boardView').addEventListener('click', onBoardClick);
+$('#boardView').addEventListener('change', e => { if (e.target.id === 'boardKeySel') { BOARD.key[BOARD.cat] = e.target.value; renderBoard() } });
 $('#boardRefresh').onclick = () => loadBoard(true);
+$('#boardBack').onclick = () => { BOARD.cat = null; renderBoard() };
 $('#nickEdit').onclick = () => editNickname();
 $('#boardOn').onchange = e => { state.prefs.boardOff = !e.target.checked; persist(e.target.checked ? '已參加排行榜' : '已退出排行榜，其他人看不到你的資料'); boardSoon() };
 boardReady = true; boardSoon();

@@ -41,7 +41,7 @@ service cloud.firestore {
     // 一般成員只能新增／修改／刪除自己那一欄；管理員可以改任何欄（含 _mod：隱藏紀錄、改暱稱、移出排行）
     function myEntryOk() {
       let d = request.resource.data;
-      return !(request.auth.uid in d) || (d[request.auth.uid] is string && d[request.auth.uid].size() < 4000);
+      return !(request.auth.uid in d) || (d[request.auth.uid] is string && d[request.auth.uid].size() < 12000);
     }
     match /leaderboard/{id} {
       allow get: if id == 'main' && (isAdmin() || (signedIn() && approved(request.auth.uid)));
