@@ -236,7 +236,7 @@ a.btn{text-decoration:none;color:inherit}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,9,18,.72);outline:2px solid var(--teal);transition:all .25s;pointer-events:none}
 .tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:top .25s,left .25s}
-.tour-card h3{margin:2px 0 6px}.tour-card p{margin:0 0 14px;font-size:calc(14px * var(--fz,1));color:var(--muted);line-height:1.6}
+.tour-card h3{margin:2px 0 6px}.tour-card p b{color:var(--ink);font-weight:800}.tk{display:inline-block;padding:0 6px;margin:1px;border-radius:6px;background:var(--surface2);border:1px solid var(--line);color:var(--ink);font-weight:700;font-size:.92em;line-height:1.55;white-space:nowrap}.tour-card p{margin:0 0 14px;font-size:calc(14px * var(--fz,1));color:var(--muted);line-height:1.6}
 .tour-count{font-size:calc(11.5px * var(--fz,1));color:var(--teal);font-weight:800}
 .tour-btns{display:flex;gap:8px;align-items:center}.tour-btns span{flex:1}
 body.touring .float-timer{display:none}
@@ -310,7 +310,7 @@ i.md{width:14px;height:14px}
 .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .seg.seg2{grid-template-columns:1fr 1fr;max-width:280px}
 .ex-head .ex-eq{display:block;margin-top:6px;width:auto;max-width:100%;padding:5px 30px 5px 10px;font-size:calc(13px * var(--fz,1));min-height:0}
-.eq-params label.wide{flex:1 1 100%}.eq-params label.wide .field{width:100%}
+.eq-params label.wide,.eq-prev{flex:1 1 100%}.eq-params label.check{display:flex;align-items:center;gap:8px;align-self:flex-end;min-height:44px}.eq-params label.wide .field{width:100%}
 .pick.tpl{flex-direction:column;align-items:flex-start;gap:4px;text-align:left}.pick.tpl small{text-align:left;line-height:1.5}
 /* 分頁：線條圖示＋文字，選中的分頁用主色 */
 .tab{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;transition:color .15s,background .15s}
@@ -526,7 +526,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
   <script>
   window.SHARK_START = function (SAVED, SYNC) {
 // ===== 01 · 基本資料：肌群、器材、動作庫、預設課表 =====
-const SCHEMA = 11;
+const SCHEMA = 12; // 12：雙出線 Cable 的頭配重改為第 0 格
 const MUSCLE_NAMES = ['胸', '背', '前肩', '側肩', '後肩', '二頭', '三頭', '股四頭', '腿後', '臀', '小腿', '核心'];
 
 // 器材類型 → 記錄方式
@@ -557,7 +557,7 @@ const BW_EQUIP = { id: 'bw', name: '自重', type: 'none', owned: true }; // 自
 // 舊版（v10）資料第一次升級時沿用的器材（原本的家用設定）
 const LEGACY_EQUIPMENT = [
   { id: 'db', name: 'NÜO 啞鈴', type: 'dumbbell', owned: true, min: 2, max: 32, step: 2 },
-  { id: 'cable', name: '雙出線 Cable', type: 'stack', owned: true, levels: 18, headLb: 8, plateLb: 12.5, firstHead: true },
+  { id: 'cable', name: '雙出線 Cable', type: 'stack', owned: true, levels: 18, headLb: 8, plateLb: 12.5, firstHead: false },
   { id: 'bw', name: '自重／引體桿', type: 'none', owned: true },
   { id: 'barbell', name: '槓鈴', type: 'barbell', owned: false, bar: 20, step: 2.5, max: 200 },
   { id: 'ft', name: 'FT Ultimate 滑輪', type: 'stack', owned: false, levels: 20, headLb: 0, plateLb: 0 },
@@ -934,6 +934,9 @@ function migrate(src) {
     bodyMetrics: Array.isArray(s.bodyMetrics) ? s.bodyMetrics : [],
   };
   if (!out.programs.some(p => p.id === out.activeProgram)) out.activeProgram = out.programs[0].id;
+  // v12：舊版家用「雙出線 Cable」原本設成「第 1 格只有頭配重」，實際上第 1 格＝頭配重＋第一塊（頭配重是第 0 格）
+  // 紀錄存的是格數，改設定後重量會自動重算；只改一次，之後使用者自己改回來也不會再動
+  if ((s.version || 0) < 12) out.equipment.forEach(e => { if (e.id === 'cable' && e.type === 'stack' && e.firstHead && e.headLb === 8 && e.plateLb === 12.5) e.firstHead = false });
   // 早期範本的 A／B 命名 → 改成有意義的名稱
   const OLD_NAMES = { '入門全身（啞鈴＋彈力帶＋徒手）': '居家入門（啞鈴＋彈力帶）', '徒手全身（不用器材）': '居家零器材（徒手）', '零器材徒手': '居家零器材（徒手）' };
   const OLD_DAYS = { 'A|全身 A': ['深蹲日', '全身・深蹲／推／划船'], 'B|全身 B': ['弓步日', '全身・弓步／臥推／拉'], 'A|徒手 A': ['深蹲日', '徒手・深蹲／伏地挺身／划船'], 'B|徒手 B': ['分腿日', '徒手・分腿蹲／屈體推／臀橋'] };
@@ -1002,7 +1005,7 @@ function pickEq(id, itemEq) {
 }
 function loadSpec(kind, eq) {
   if (kind === 'db' || kind === 'db1') return { min: eq?.min ?? 0, max: eq?.max ?? 100, step: eq?.step || 2 };
-  if (kind === 'stack') return { min: eq?.firstHead ? 1 : 0, max: eq?.levels || 20, step: 1 };
+  if (kind === 'stack') return { min: eq?.firstHead || !(eq?.headLb > 0) ? 1 : 0, max: eq?.levels || 20, step: 1 }; // 有頭配重才有第 0 格
   if (kind === 'band') return { min: 1, max: bandNames(eq).length, step: 1 };
   if (kind === 'plate') return { min: eq?.bar || 0, max: eq?.max || 500, step: eq?.step || 2.5 };
   return { min: 0, max: 200, step: 2.5 };
@@ -2088,7 +2091,7 @@ function renderAiForm() {
 function saveAiForm() { state.prefs.ai = aiForm(); persist(); aiEdited = false; if (!$('#aiPrompt').classList.contains('hidden')) $('#aiPrompt').value = aiPrompt() }
 let aiEdited = false;
 function eqDesc(e) {
-  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} ${stackUnit(e)}，之後` : e.headLb ? `基本重量 ${e.headLb} ${stackUnit(e)}，` : ''}每格 +${e.plateLb} ${stackUnit(e)}` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : e.type === 'band' ? `：${bandNames(e).length} 種阻力（由輕到重：${bandNames(e).join('、')}）` : ''}`;
+  return `- ${e.name}（id: ${e.id}）${e.type === 'dumbbell' ? `：${e.min}–${e.max} kg，每次 +${e.step} kg` : e.type === 'stack' ? `：${e.levels} 格${e.plateLb ? `，${e.firstHead ? `第 1 格為頭配重 ${e.headLb} ${stackUnit(e)}，之後` : e.headLb ? `第 0 格為頭配重 ${e.headLb} ${stackUnit(e)}，` : ''}每格 +${e.plateLb} ${stackUnit(e)}` : ''}` : e.type === 'barbell' || e.type === 'machine' ? `：槓／起始 ${e.bar} kg，最小加重 ${e.step} kg，上限 ${e.max} kg` : e.type === 'band' ? `：${bandNames(e).length} 種阻力（由輕到重：${bandNames(e).join('、')}）` : ''}`;
 }
 function aiPrompt() {
   const f = aiForm(), eqs = state.equipment.filter(e => f.eq.includes(e.id));
@@ -2166,13 +2169,19 @@ function importAiProgram() {
 }
 
 // ---------- 設定：器材、自訂動作、資料 ----------
+// 滑輪：顯示換算結果，方便對照機器上的數字（預設頭配重是第 0 格，第 1 格＝頭配重＋第一塊）
+function stackPreview(e) {
+  if (!e.plateLb) return '沒填每格重量：只記第幾格，不換算重量，也不列入排行榜';
+  const lo = loadSpec('stack', e).min, u = stackUnit(e);
+  return '換算：' + [...new Set([lo, lo + 1, e.levels || 20])].map(n => `第 ${n} 格 ${stackLb(n, e)} ${u}`).join('、');
+}
 function renderSettings() {
   const rows = state.equipment.map((e, i) => {
     if (e.id === 'bw' || e.type === 'none') return ''; // 自重不用器材
     const f = (k, label, unit, step = 'any') => `<label>${label}<span class="unit"><input class="field eq-f" data-k="${k}" type="number" step="${step}" value="${esc(e[k] ?? '')}">${unit}</span></label>`;
     const u = stackUnit(e);
     const params = e.type === 'dumbbell' ? f('min', '最輕', 'kg') + f('max', '最重', 'kg') + f('step', '每次加', 'kg')
-      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '基本重量', u) + f('plateLb', '每格', u) + `<label>單位<select class="field eq-unit"><option value="kg" ${u === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u === 'lb' ? 'selected' : ''}>lb</option></select></label><label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label>`
+      : e.type === 'stack' ? f('levels', '格數', '格', 1) + f('headLb', '頭配重', u) + f('plateLb', '每格', u) + `<label>單位<select class="field eq-unit"><option value="kg" ${u === 'kg' ? 'selected' : ''}>kg</option><option value="lb" ${u === 'lb' ? 'selected' : ''}>lb</option></select></label><label class="check sm"><input type="checkbox" class="eq-flag" data-k="firstHead" ${e.firstHead ? 'checked' : ''}>第 1 格只有頭配重</label><small class="muted eq-prev">${stackPreview(e)}</small>`
       : e.type === 'barbell' || e.type === 'machine' ? f('bar', '槓／起始重', 'kg') + f('step', '最小加重', 'kg') + f('max', '上限', 'kg')
       : e.type === 'band' ? `<label class="wide">由輕到重（用逗號分隔，例如：黃,紅,綠,藍,黑）<input class="field eq-t" data-k="bands" value="${esc(e.bands || '最輕,輕,中,重,最重')}"></label>` : '';
     return `<div class="eq-row ${e.owned ? '' : 'off'}" data-e="${i}"><div class="eq-top"><label class="check"><input type="checkbox" class="eq-owned" ${e.owned ? 'checked' : ''} title="目前可用"><input class="field eq-name" value="${esc(e.name)}"></label><span class="tag">${EQUIP_TYPES[e.type]?.label || ''}</span><button class="icon-btn" data-act="eq-del" aria-label="刪除">✕</button></div>${params ? `<div class="eq-params">${params}</div>` : ''}</div>`;
@@ -2196,6 +2205,7 @@ function onEquipInput(ev) {
   else if (el.classList.contains('eq-flag')) e[el.dataset.k] = el.checked;
   else if (el.classList.contains('eq-unit')) { e.unit = el.value; renderSettings() }
   else if (el.classList.contains('eq-t')) { if (!el.value.trim()) return; e[el.dataset.k] = el.value.trim() }
+  if (e.type === 'stack' && row.querySelector('.eq-prev')) row.querySelector('.eq-prev').textContent = stackPreview(e);
   invalidate(); persist(); programDirty = true;
 }
 function onEquipClick(ev) {
@@ -2373,25 +2383,27 @@ function dropBoard(uid) {
 }
 
 // ===== 06.6 · 使用教學（第一次使用自動出現；設定裡可重看）=====
+// 文字標記：**重點** → 加粗加深；「按鈕或位置」→ 小標籤，讓人掃一眼就知道要按哪裡
 const TOUR = [
-  { title: '歡迎使用 SHARK Fitness', text: '花 1 分鐘認識主要功能。隨時可以按「略過」，之後在「設定 → 使用教學」重看。' },
-  { view: 'train', el: '.summary', title: '摘要', text: '本週練了幾次、上次練什麼，以及下一次該練哪一天。點綠色的「下一次」可以直接開始。' },
-  { view: 'train', el: '.tabs', title: '六個分頁', text: '訓練、統計、歷史、課表、排行、設定。大部分時間只會用到「訓練」。' },
-  { view: 'train', el: '.toolbar', title: '選日期與訓練日', text: '預設是今天和課表輪到的那一天，也可以手動切換。「清空」會清掉今天還沒保存的輸入。' },
-  { view: 'train', el: '#dayNote', title: '換課表', text: '這裡顯示目前用的課表。想換成居家、健身房或其他課表，按「換課表」；之後也可以在「設定 → 使用教學 → 重新選課表」挑範本。' },
-  { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」會自動勾選這組；反過來，直接打勾或填完次數，也會自動開始休息。休息完按「下一組」，按錯可以按「上一組」。往下捲時，上方會出現小計時列。' },
-  { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是依上次表現算出的建議重量。2 組做到次數上限，或 1 組做到上限還有餘力，下次就會建議加重；到器材上限會出現「升階」。' },
-  { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和「餘力」（做完還能再做幾下，不確定可以留空），完成就打勾。輸入會自動保存，換手機也接得上。' },
-  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」；有兩組以上同類器材時，動作名稱下面可以選今天用哪一個。' },
-  { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
-  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「居家入門」（啞鈴＋彈力帶，深蹲日、弓步日輪流）。按「範本」可以挑居家或健身房的課表，也可以自己新增；選中的就是訓練頁使用的那份。' },
-  { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
-  { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數和各動作的最佳紀錄，可以依部位（胸、背、腿…）或依器材分類，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
-  { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材（啞鈴、彈力帶、Cable、器械…），再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
-  { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
-  { view: 'settings', el: '#homeGuide', title: '加入主畫面', text: '把網站加到手機主畫面，用起來就像 App（全螢幕、開得更快）。教學結束後會用圖示一步步帶你做，之後也可以按這裡重看。' },
-  { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看教學或重新選課表，到「設定 → 使用教學」；字太小可以到「設定 → 顯示」調大。' },
+  { title: '歡迎使用 SHARK Fitness', text: '花 **1 分鐘**認識主要功能。隨時可以按「略過」，之後在「設定 → 使用教學」重看。' },
+  { view: 'train', el: '.summary', title: '摘要', text: '本週練了幾次、上次練什麼，以及**下一次該練哪一天**。點綠色的「下一次」可以直接開始。' },
+  { view: 'train', el: '.tabs', title: '六個分頁', text: '訓練、統計、歷史、課表、排行、設定。**大部分時間只會用到「訓練」**。' },
+  { view: 'train', el: '.toolbar', title: '選日期與訓練日', text: '預設是**今天**和**課表輪到的那一天**，也可以手動切換。「清空」會清掉今天還沒保存的輸入。' },
+  { view: 'train', el: '#dayNote', title: '換課表', text: '這裡顯示目前用的課表。**想換成居家或健身房的課表**，按「換課表」；之後也可以到「設定 → 使用教學」重新選。' },
+  { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作，按「動作」開始計時。**做完打勾或填完次數，會自動開始休息**（按「組間休息」也可以）；休息完按「下一組」，按錯可以按「上一組」。往下捲時，上方會出現**小計時列**。' },
+  { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是**依上次表現算出的建議重量**。2 組做到次數上限（或 1 組做到上限還有餘力），**下次就會建議加重**；到器材上限會出現「升階」。' },
+  { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填**重量、次數**和「餘力」（做完還能再做幾下，不確定可以留空），完成就**打勾**。輸入會**自動保存**，換手機也接得上。' },
+  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點、「替換」只換這一次、「＋組／－組」調整組數、「移除」今天不做。**列表最下面可以「＋ 加入動作」**；有兩組以上同類器材時，可以在動作名稱下面**選今天用哪一個**。' },
+  { view: 'train', el: '.savebar', title: '完成並保存', text: '**練完記得按這裡**，這次訓練才會加入歷史，下次的建議也會跟著更新。' },
+  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「居家入門」（啞鈴＋彈力帶）。**按「範本」可以挑居家或健身房的課表**，也可以自己新增；選中的就是訓練頁用的那份。' },
+  { view: 'program', el: '.day-card', title: '編輯訓練日', text: '**點動作名稱可以換動作**，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以**請 AI 幫你產生課表**。' },
+  { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比**訓練次數**和**各動作的最佳紀錄**，可以依部位或依器材分類，冷門動作也能拿第一。暱稱和要不要參加，在「設定」更改。' },
+  { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」**加入你有的器材**（啞鈴、彈力帶、Cable、器械…），再設定重量上限和加重幅度；**建議重量會依這些設定計算**。' },
+  { view: 'stats', el: '#analyticsView .card', title: '統計', text: '**每週各部位訓練量**（主要肌群算 1 組、次要算 0.5 組）、各動作目前的重量，以及體重、體脂等**身體數據的趨勢**。' },
+  { view: 'settings', el: '#homeGuide', title: '加入主畫面', text: '把網站加到手機主畫面，**用起來就像 App**（全螢幕、開得更快）。教學結束後會用圖示**一步步帶你做**，之後也可以按這裡重看。' },
+  { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。**想重看教學或重新選課表**，到「設定 → 使用教學」；**字太小**可以到「設定 → 顯示與操作」調大。' },
 ];
+const richText = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/「(.+?)」/g, '<span class="tk">$1</span>');
 let tourStep = -1;
 
 function startTour() {
@@ -2410,7 +2422,7 @@ function showTourStep(i) {
   if (s.view && s.view !== view) switchView(s.view);
   const target = s.el ? $(s.el) : null;
   if (s.el && (!target || !target.offsetParent)) return showTourStep(tourStep + (i < tourStep ? -1 : 1)); // 找不到就跳過
-  $('#tourTitle').textContent = s.title; $('.tour-text').textContent = s.text;
+  $('#tourTitle').textContent = s.title; $('.tour-text').innerHTML = richText(s.text);
   $('.tour-count').textContent = `${tourStep + 1} / ${TOUR.length}`;
   $('[data-tour="prev"]').hidden = tourStep === 0;
   $('[data-tour="next"]').textContent = tourStep === 0 ? '開始' : tourStep === TOUR.length - 1 ? '完成' : '下一步';
@@ -2823,6 +2835,13 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.03-6', date: '2026-10-03', title: '教學標出重點', items: [
+    '使用教學的重點改成粗體加深，要按的按鈕和位置用小標籤標示，掃一眼就知道要按哪裡；部分說明也縮短了。',
+    'Cable 沒填頭配重時，最輕就是第 1 格，不會建議降到第 0 格。'] },
+  { v: '2026.10.03-5', date: '2026-10-03', title: 'Cable 頭配重改成第 0 格', items: [
+    'Cable 滑輪：頭配重算第 0 格，第 1 格＝頭配重＋第一塊。機器的標法不同（第 1 格只有頭配重）時，可以在器材設定勾選「第 1 格只有頭配重」。',
+    '舊的家用「雙出線 Cable」已自動更正：紀錄的格數不變，換算的重量每格多 12.5 lb（例如第 1 格 8 → 20.5 lb），排行榜也會跟著更新。',
+    '「設定 → 器材」的滑輪會直接顯示換算結果，方便對照機器上的數字；第 1 格做不到次數時，可以降到第 0 格（只有頭配重）。'] },
   { v: '2026.10.03-4', date: '2026-10-03', title: '更新時不打斷訓練', items: [
     '訓練到一半剛好遇到網站更新，重新整理後會直接接續，計時照常繼續；「更新了什麼」等下次打開再顯示。',
     '用舊版開始的訓練，更新後也能接續。',
