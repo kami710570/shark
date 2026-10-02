@@ -310,6 +310,14 @@ i.md{width:14px;height:14px}
 .ex-head .ex-eq{display:block;margin-top:6px;width:auto;max-width:100%;padding:5px 30px 5px 10px;font-size:13px;min-height:0}
 .eq-params label.wide{flex:1 1 100%}.eq-params label.wide .field{width:100%}
 .pick.tpl{flex-direction:column;align-items:flex-start;gap:4px;text-align:left}.pick.tpl small{text-align:left;line-height:1.5}
+/* 分頁：線條圖示＋文字，選中的分頁用主色 */
+.tab{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;transition:color .15s,background .15s}
+.tab svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--teal);background:color-mix(in srgb,var(--teal) 13%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--teal) 35%,transparent)}
+.tab.active svg{opacity:1}
+.tab.badge::after{position:absolute;top:6px;right:8px;margin:0}
+@media (max-width:760px){.tab{flex-direction:column;gap:3px;padding:7px 2px 6px;font-size:12.5px}.tab svg{width:20px;height:20px}.tab.badge::after{right:calc(50% - 17px);top:4px}}
 
   </style>
 </head>
@@ -347,7 +355,7 @@ i.md{width:14px;height:14px}
 
     <div id="notice" class="notice hidden"></div>
     <nav class="tabs" aria-label="分頁">
-      <button class="tab active" data-view="train">訓練</button><button class="tab" data-view="stats">統計</button><button class="tab" data-view="history">歷史</button><button class="tab" data-view="program">課表</button><button class="tab" data-view="board">排行</button><button class="tab" data-view="settings">設定</button>
+      <button class="tab active" data-view="train"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg><span>訓練</span></button><button class="tab" data-view="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6.5 16.5v-5M11 16.5V6M15.5 16.5V10M20 16.5V4"/></svg><span>統計</span></button><button class="tab" data-view="history"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>歷史</span></button><button class="tab" data-view="program"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16" rx="2"/><path d="M9 3.5h6v3H9zM8.5 11h7M8.5 15h4.5"/></svg><span>課表</span></button><button class="tab" data-view="board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5.5H5a3 3 0 0 0 3 4M16 5.5h3a3 3 0 0 1-3 4M12 13v4M8.5 20.5h7M10 17h4v3.5h-4z"/></svg><span>排行</span></button><button class="tab" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg><span>設定</span></button>
     </nav>
 
     <section id="trainView" class="view">
@@ -386,7 +394,7 @@ i.md{width:14px;height:14px}
     <section id="historyView" class="view hidden"><div id="historyList" class="h-list"></div></section>
 
     <section id="programView" class="view hidden">
-      <div class="card pad"><div class="prog-bar"><select id="progSelect" class="field" aria-label="使用中的課表"></select><div class="row-inline"><button id="progTpl" class="btn btn-primary btn-sm">範本</button><button id="progNew" class="btn btn-light btn-sm">新增</button><button id="progCopy" class="btn btn-light btn-sm">複製</button><button id="progRename" class="btn btn-light btn-sm">改名</button><button id="progDelete" class="btn btn-light btn-sm">刪除</button></div></div><p class="muted sm">選中的課表就是訓練頁使用的課表。可以從「範本」挑一份（居家入門、零器材徒手、SHARK 四日）再修改；修改會自動保存，歷史紀錄不受影響。</p></div>
+      <div class="card pad"><div class="prog-bar"><select id="progSelect" class="field" aria-label="使用中的課表"></select><div class="row-inline"><button id="progTpl" class="btn btn-primary btn-sm">範本</button><button id="progNew" class="btn btn-light btn-sm">新增</button><button id="progCopy" class="btn btn-light btn-sm">複製</button><button id="progRename" class="btn btn-light btn-sm">改名</button><button id="progDelete" class="btn btn-light btn-sm">刪除</button></div></div><p class="muted sm">選中的課表就是訓練頁使用的課表。可以從「範本」挑一份（分成居家與健身房）再修改；修改會自動保存，歷史紀錄不受影響。</p></div>
       <div id="dayList" class="day-list"></div>
       <button id="dayAdd" class="btn btn-light wide">＋ 新增訓練日</button>
       <div class="card pad"><h3>用 AI 產生課表</h3><p class="muted sm">1. 填好條件　2. 複製指令，貼到任一 AI 對話　3. 把 AI 回覆的 JSON 貼回下方匯入</p>
@@ -635,6 +643,7 @@ const LIB_ROWS = [
   ['bw_split', '徒手分腿蹲', 'bw', '', '股四頭、臀肌', '前後分腿站，雙腳不動。', '垂直下降到後膝接近地面，用前腳推起。', '前膝內夾、身體前傾過多。', { sl: '~lunge|Quads Adductors Glutes|', side: true, next: ['split'] }],
   ['bw_calf', '徒手提踵', 'bw', '', '小腿', '前腳掌踩在台階邊緣，可以扶牆。', '腳跟充分下降，再推到最高點停一下。', '彈震、範圍太短。', { sl: '~standing-calf-raise|Calves|', next: ['calf1'] }],
   ['sl_glute_bridge', '單腳臀橋', 'bw', '', '臀大肌', '仰躺，一腳屈膝踩地，另一腳伸直抬起。', '骨盆後傾，用踩地的腳推髖到身體一直線，頂端夾臀。', '用腰撐起、骨盆歪斜。', { sl: '~glute-bridge|Glutes|Quads', side: true, next: ['db_hipthrust'] }],
+  ['prone_y_raise', '俯臥 Y 字上舉', 'bw', '後肩1 背.5', '後三角、下斜方肌', '趴在地上，手臂往前斜上方伸成 Y 字，拇指朝上。', '肩胛往後下收，把手臂抬離地面，停 2 秒再慢慢放下。', '聳肩、抬頭仰脖子、用腰拱起代替手臂。', {}],
   ['superman', '超人式', 'bw', '', '下背、臀肌', '趴在地上，手臂往前伸直。', '同時抬起手臂、胸口和雙腿，頸部保持自然，停一下再放下。', '頭往後仰、甩動。', { sl: 'superman|Glutes LowBack|Hams' }],
   ['bw_crunch', '捲腹', 'bw', '', '腹直肌', '仰躺屈膝，雙手輕放耳側或胸前。', '收緊腹部把上半身往前捲起，下背保持貼地，控制回去。', '用手拉頭、甩動。', { sl: 'crunch|Abs|Obliques' }],
   ['lying_leg_raise', '仰臥抬腿', 'bw', '', '腹直肌下段', '仰躺，雙手放在身體兩側。', '雙腿伸直往上抬到朝天，再慢慢放下；太難可以彎膝。', '下背離地拱起、放太快。', { sl: 'lying-leg-raise|Abs HipFlex|Obliques', next: ['hanging_raise'] }],
@@ -669,7 +678,7 @@ const LIB_ROWS = [
   ['back_ext', '背伸展（羅馬椅）', 'bw', '', '臀肌、下背', '調整護墊在大腿上緣，雙腳固定。', '不靠慣性慢慢下放，起身到身體一直線時夾臀。', '過度後仰、甩動。', { sl: 'back-extension|Glutes LowBack|Hams' }],
 ];
 
-const EN_NAMES = {"band_row": "Resistance Band Seated Row", "band_pulldown": "Resistance Band Lat Pulldown", "band_facepull": "Band Face Pull", "band_pull_apart": "Band Pull Apart", "band_chest_press": "Resistance Band Chest Press", "band_lateral": "Resistance Band Lateral Raise", "band_curl": "Resistance Band Curl", "band_pushdown": "Band Triceps Pushdown", "band_clamshell": "Banded Clamshell", "band_lateral_walk": "Lateral Band Walk", "knee_pushup": "Kneeling Push Up", "incline_pushup": "Incline Push Up", "close_pushup": "Close Grip Push Up", "bench_dip": "Bench Dip", "bw_lunge": "Bodyweight Lunge", "bw_split": "Bodyweight Split Squat", "bw_calf": "Bodyweight Calf Raise", "sl_glute_bridge": "Single Leg Glute Bridge", "superman": "Superman", "bw_crunch": "Crunch", "lying_leg_raise": "Lying Leg Raise", "db_floor_press": "Dumbbell Floor Press", "machine_chest_press": "Machine Chest Press", "machine_fly": "Machine Chest Fly", "machine_shoulder_press": "Machine Shoulder Press", "machine_lateral": "Machine Lateral Raise", "machine_reverse_fly": "Reverse Machine Fly", "machine_pulldown": "Machine Lat Pulldown", "machine_row": "Seated Machine Row", "machine_curl": "Machine Bicep Curl", "machine_triceps": "Machine Triceps Extension", "machine_crunch": "Machine Crunch", "leg_ext": "Leg Extension", "seated_leg_curl": "Seated Leg Curl", "lying_leg_curl": "Lying Leg Curl", "machine_hip_thrust": "Hip Thrust Machine", "hip_abd": "Hip Abduction Machine", "hip_add": "Hip Adduction Machine", "machine_calf": "Seated Calf Raise Machine", "leg_press": "Leg Press", "hack_squat": "Hack Squat", "t_bar_row": "T-Bar Row", "bb_lunge": "Barbell Lunge", "bb_shrug": "Barbell Shrug", "bb_skull": "Barbell Skull Crusher", "pullup": "Pull Up", "back_ext": "Back Extension", "bench": "Dumbbell Bench Press", "db_pause_bench": "Paused Dumbbell Bench Press", "incline": "Low Incline Dumbbell Press", "db_fly": "Dumbbell Fly", "ohp": "Seated Dumbbell Shoulder Press", "db_lateral": "Dumbbell Lateral Raise", "db_reardelt": "Dumbbell Rear Delt Fly", "one_row": "One Arm Dumbbell Row", "db_pullover": "Dumbbell Pullover", "curl": "Dumbbell Supinated Curl", "hammer": "Hammer Curl", "db_ohext": "Dumbbell Overhead Triceps Extension", "db_shrug": "Dumbbell Shrug", "rdl": "Dumbbell Romanian Deadlift", "bstance": "B-Stance Dumbbell RDL", "sl_rdl": "Single Leg Dumbbell RDL", "rev_lunge": "Dumbbell Reverse Lunge", "db_stepup": "Dumbbell Step Up", "heel_squat": "Heels Elevated Dumbbell Squat", "pause_squat": "Paused Dumbbell Squat", "goblet": "Goblet Squat", "split": "Bulgarian Split Squat", "split_deficit": "Front Foot Elevated Bulgarian Split Squat", "db_hipthrust": "Dumbbell Hip Thrust", "calf1": "Single Leg Calf Raise", "calf2": "Calf Raise", "fly": "Cable Fly", "pulldown": "Lat Pulldown", "pulldown_merged": "Lat Pulldown", "crow": "Seated Cable Row Close Grip", "cable_row1": "Single Arm Cable Row", "lateral": "Cable Lateral Raise", "facepull": "Face Pull", "pushdown": "Cable Triceps Pushdown", "cable_ohext": "Cable Overhead Triceps Extension", "cable_curl": "Cable Curl", "crunch": "Cable Crunch", "pallof": "Pallof Press", "cable_kickback": "Cable Glute Kickback", "chinup": "Chin Up", "pushup": "Push Up", "pushup_decline": "Decline Push Up", "dips": "Dips", "deadbug": "Dead Bug", "core2": "Dead Bug", "hanging_raise": "Hanging Leg Raise", "plank": "Plank", "bb_squat": "Barbell Back Squat", "bb_front": "Barbell Front Squat", "bb_dl": "Conventional Deadlift", "bb_rdl": "Barbell Romanian Deadlift", "bb_bench": "Barbell Bench Press", "bb_incline": "Incline Barbell Bench Press", "bb_ohp": "Barbell Overhead Press", "bb_row": "Barbell Row", "bb_hipthrust": "Barbell Hip Thrust", "bb_curl": "Barbell Curl", "smith_squat": "Smith Machine Squat", "smith_bench": "Smith Machine Bench Press", "smith_incline": "Smith Machine Incline Press", "smith_split": "Smith Machine Split Squat", "smith_ohp": "Smith Machine Shoulder Press", "bike": "Indoor Cycling", "run": "Running", "db_arnold": "Arnold Press", "db_front_raise": "Dumbbell Front Raise", "db_chest_row": "Chest Supported Dumbbell Row", "db_skull": "Dumbbell Skull Crusher", "db_kickback": "Dumbbell Triceps Kickback", "db_incline_curl": "Incline Dumbbell Curl", "db_concentration": "Concentration Curl", "db_walk_lunge": "Dumbbell Walking Lunge", "db_sumo": "Dumbbell Sumo Squat", "db_farmer": "Farmers Walk", "cable_straight_pd": "Straight Arm Pulldown", "cable_pulldown1": "Single Arm Lat Pulldown", "cable_rear_fly": "Cable Rear Delt Fly", "cable_y_raise": "Cable Y Raise", "cable_fly_low": "Low to High Cable Fly", "cable_fly_high": "High to Low Cable Fly", "cable_press": "Standing Cable Chest Press", "cable_hammer": "Cable Rope Hammer Curl", "cable_woodchop": "Cable Woodchop", "cable_pullthrough": "Cable Pull Through", "inverted_row": "Inverted Row", "glute_bridge": "Glute Bridge", "nordic": "Nordic Hamstring Curl", "side_plank": "Side Plank", "bird_dog": "Bird Dog", "pike_pushup": "Pike Push Up", "bw_squat": "Bodyweight Squat", "bb_sumo_dl": "Sumo Deadlift", "bb_close_bench": "Close Grip Bench Press", "bb_good_morning": "Barbell Good Morning", "smith_rdl": "Smith Machine RDL", "smith_hipthrust": "Smith Machine Hip Thrust", "smith_calf": "Smith Machine Calf Raise", "smith_row": "Smith Machine Row", "bike_hiit": "Spin Bike HIIT", "jumprope": "Jump Rope"};
+const EN_NAMES = {"prone_y_raise": "Prone Y Raise", "band_row": "Resistance Band Seated Row", "band_pulldown": "Resistance Band Lat Pulldown", "band_facepull": "Band Face Pull", "band_pull_apart": "Band Pull Apart", "band_chest_press": "Resistance Band Chest Press", "band_lateral": "Resistance Band Lateral Raise", "band_curl": "Resistance Band Curl", "band_pushdown": "Band Triceps Pushdown", "band_clamshell": "Banded Clamshell", "band_lateral_walk": "Lateral Band Walk", "knee_pushup": "Kneeling Push Up", "incline_pushup": "Incline Push Up", "close_pushup": "Close Grip Push Up", "bench_dip": "Bench Dip", "bw_lunge": "Bodyweight Lunge", "bw_split": "Bodyweight Split Squat", "bw_calf": "Bodyweight Calf Raise", "sl_glute_bridge": "Single Leg Glute Bridge", "superman": "Superman", "bw_crunch": "Crunch", "lying_leg_raise": "Lying Leg Raise", "db_floor_press": "Dumbbell Floor Press", "machine_chest_press": "Machine Chest Press", "machine_fly": "Machine Chest Fly", "machine_shoulder_press": "Machine Shoulder Press", "machine_lateral": "Machine Lateral Raise", "machine_reverse_fly": "Reverse Machine Fly", "machine_pulldown": "Machine Lat Pulldown", "machine_row": "Seated Machine Row", "machine_curl": "Machine Bicep Curl", "machine_triceps": "Machine Triceps Extension", "machine_crunch": "Machine Crunch", "leg_ext": "Leg Extension", "seated_leg_curl": "Seated Leg Curl", "lying_leg_curl": "Lying Leg Curl", "machine_hip_thrust": "Hip Thrust Machine", "hip_abd": "Hip Abduction Machine", "hip_add": "Hip Adduction Machine", "machine_calf": "Seated Calf Raise Machine", "leg_press": "Leg Press", "hack_squat": "Hack Squat", "t_bar_row": "T-Bar Row", "bb_lunge": "Barbell Lunge", "bb_shrug": "Barbell Shrug", "bb_skull": "Barbell Skull Crusher", "pullup": "Pull Up", "back_ext": "Back Extension", "bench": "Dumbbell Bench Press", "db_pause_bench": "Paused Dumbbell Bench Press", "incline": "Low Incline Dumbbell Press", "db_fly": "Dumbbell Fly", "ohp": "Seated Dumbbell Shoulder Press", "db_lateral": "Dumbbell Lateral Raise", "db_reardelt": "Dumbbell Rear Delt Fly", "one_row": "One Arm Dumbbell Row", "db_pullover": "Dumbbell Pullover", "curl": "Dumbbell Supinated Curl", "hammer": "Hammer Curl", "db_ohext": "Dumbbell Overhead Triceps Extension", "db_shrug": "Dumbbell Shrug", "rdl": "Dumbbell Romanian Deadlift", "bstance": "B-Stance Dumbbell RDL", "sl_rdl": "Single Leg Dumbbell RDL", "rev_lunge": "Dumbbell Reverse Lunge", "db_stepup": "Dumbbell Step Up", "heel_squat": "Heels Elevated Dumbbell Squat", "pause_squat": "Paused Dumbbell Squat", "goblet": "Goblet Squat", "split": "Bulgarian Split Squat", "split_deficit": "Front Foot Elevated Bulgarian Split Squat", "db_hipthrust": "Dumbbell Hip Thrust", "calf1": "Single Leg Calf Raise", "calf2": "Calf Raise", "fly": "Cable Fly", "pulldown": "Lat Pulldown", "pulldown_merged": "Lat Pulldown", "crow": "Seated Cable Row Close Grip", "cable_row1": "Single Arm Cable Row", "lateral": "Cable Lateral Raise", "facepull": "Face Pull", "pushdown": "Cable Triceps Pushdown", "cable_ohext": "Cable Overhead Triceps Extension", "cable_curl": "Cable Curl", "crunch": "Cable Crunch", "pallof": "Pallof Press", "cable_kickback": "Cable Glute Kickback", "chinup": "Chin Up", "pushup": "Push Up", "pushup_decline": "Decline Push Up", "dips": "Dips", "deadbug": "Dead Bug", "core2": "Dead Bug", "hanging_raise": "Hanging Leg Raise", "plank": "Plank", "bb_squat": "Barbell Back Squat", "bb_front": "Barbell Front Squat", "bb_dl": "Conventional Deadlift", "bb_rdl": "Barbell Romanian Deadlift", "bb_bench": "Barbell Bench Press", "bb_incline": "Incline Barbell Bench Press", "bb_ohp": "Barbell Overhead Press", "bb_row": "Barbell Row", "bb_hipthrust": "Barbell Hip Thrust", "bb_curl": "Barbell Curl", "smith_squat": "Smith Machine Squat", "smith_bench": "Smith Machine Bench Press", "smith_incline": "Smith Machine Incline Press", "smith_split": "Smith Machine Split Squat", "smith_ohp": "Smith Machine Shoulder Press", "bike": "Indoor Cycling", "run": "Running", "db_arnold": "Arnold Press", "db_front_raise": "Dumbbell Front Raise", "db_chest_row": "Chest Supported Dumbbell Row", "db_skull": "Dumbbell Skull Crusher", "db_kickback": "Dumbbell Triceps Kickback", "db_incline_curl": "Incline Dumbbell Curl", "db_concentration": "Concentration Curl", "db_walk_lunge": "Dumbbell Walking Lunge", "db_sumo": "Dumbbell Sumo Squat", "db_farmer": "Farmers Walk", "cable_straight_pd": "Straight Arm Pulldown", "cable_pulldown1": "Single Arm Lat Pulldown", "cable_rear_fly": "Cable Rear Delt Fly", "cable_y_raise": "Cable Y Raise", "cable_fly_low": "Low to High Cable Fly", "cable_fly_high": "High to Low Cable Fly", "cable_press": "Standing Cable Chest Press", "cable_hammer": "Cable Rope Hammer Curl", "cable_woodchop": "Cable Woodchop", "cable_pullthrough": "Cable Pull Through", "inverted_row": "Inverted Row", "glute_bridge": "Glute Bridge", "nordic": "Nordic Hamstring Curl", "side_plank": "Side Plank", "bird_dog": "Bird Dog", "pike_pushup": "Pike Push Up", "bw_squat": "Bodyweight Squat", "bb_sumo_dl": "Sumo Deadlift", "bb_close_bench": "Close Grip Bench Press", "bb_good_morning": "Barbell Good Morning", "smith_rdl": "Smith Machine RDL", "smith_hipthrust": "Smith Machine Hip Thrust", "smith_calf": "Smith Machine Calf Raise", "smith_row": "Smith Machine Row", "bike_hiit": "Spin Bike HIIT", "jumprope": "Jump Rope"};
 // ---------- 肌群來源 ----------
 // sl: 'StrengthLog 網址代號|主要肌群|次要肌群'，「~」開頭＝相近動作（同肌群，器材或細節不同）
 // 計算：主要 = 1 組、次要 = 0.5 組（Pelland et al. 2024/2025 分數計算法）；同一肌群取較大值
@@ -730,32 +739,60 @@ const SHARK_PROGRAM = {
 // 課表範本：新帳號預設「入門全身」；其他可在「課表 → 範本」加入
 // 格式同上：[動作 id, 組數, 次數下限, 次數上限, 提醒]；設計依一般訓練原則（每個主要肌群每週約 6–12 組、兩個訓練日輪流）
 const PROGRAM_TEMPLATES = [
-  { id: 'starter', name: '居家入門（啞鈴＋彈力帶）', equip: ['db', 'band'],
+  // ----- 居家：只用家裡做得到的動作（地板、椅子、啞鈴、彈力帶）-----
+  { id: 'starter', place: 'home', name: '居家入門（啞鈴＋彈力帶）', equip: ['db', 'band'],
     desc: '全身訓練，每週 3 次，深蹲日、弓步日輪流（例如一三五）。需要一對啞鈴、一條彈力帶和一張穩固的椅子，每次約 40–50 分鐘。',
     days: [
       { label: '深蹲日', title: '全身・深蹲／推／划船', items: [
         ['goblet', 3, 8, 12, '雙手捧一顆啞鈴。'], ['pushup', 3, 5, 15, '做不到 5 下：先改跪姿或上斜伏地挺身。'],
         ['one_row', 3, 8, 12, '每側次數；一手一膝撐在椅子上。'], ['rdl', 3, 8, 12, ''],
-        ['band_lateral', 2, 12, 20, ''], ['plank', 2, 20, 60, '次數欄填秒數。']] },
+        ['band_lateral', 2, 12, 20, '雙腳踩住彈力帶。'], ['plank', 2, 20, 60, '次數欄填秒數。']] },
       { label: '弓步日', title: '全身・弓步／臥推／拉', items: [
         ['rev_lunge', 3, 8, 12, '每腳次數。'], ['db_floor_press', 3, 8, 12, '躺在地上做，不需要臥推椅。'],
-        ['band_row', 3, 10, 15, '彈力帶繞過腳底。'], ['glute_bridge', 3, 10, 20, '太輕時把啞鈴放在髖部，模式選「負重」。'],
-        ['band_facepull', 2, 12, 20, ''], ['curl', 2, 8, 12, ''], ['deadbug', 2, 8, 12, '每側次數。']] },
+        ['band_row', 3, 10, 15, '坐在地上，彈力帶繞過腳底。'], ['glute_bridge', 3, 10, 20, '太輕時把啞鈴放在髖部，模式選「負重」。'],
+        ['band_pull_apart', 2, 12, 20, '不需要固定點。'], ['curl', 2, 8, 12, ''], ['deadbug', 2, 8, 12, '每側次數。']] },
     ] },
-  { id: 'bodyweight', name: '零器材徒手', equip: [],
-    desc: '全身訓練，每週 3 次，深蹲日、分腿日輪流。不用任何器材，只需要地板和一張穩固的椅子或桌子，適合在家或出差。',
+  { id: 'bodyweight', place: 'home', name: '居家零器材（徒手）', equip: [],
+    desc: '全身訓練，每週 3 次，深蹲日、分腿日輪流。只需要地板和一張穩固的椅子；沒有器材時背部的「拉」比較難練，之後可以加一條彈力帶改用「居家入門」。',
     days: [
-      { label: '深蹲日', title: '徒手・深蹲／伏地挺身／划船', items: [
+      { label: '深蹲日', title: '徒手・深蹲／伏地挺身／背', items: [
         ['bw_squat', 3, 10, 20, ''], ['pushup', 3, 5, 15, '做不到 5 下：先改跪姿或上斜伏地挺身。'],
-        ['inverted_row', 3, 6, 12, '用穩固的桌子或低單槓；身體越平越難。'], ['glute_bridge', 3, 10, 20, ''],
+        ['prone_y_raise', 3, 8, 15, ''], ['glute_bridge', 3, 10, 20, ''],
         ['side_plank', 2, 20, 45, '每側秒數。'], ['bw_crunch', 2, 10, 20, '']] },
       { label: '分腿日', title: '徒手・分腿蹲／屈體推／臀橋', items: [
         ['bw_split', 3, 8, 15, '每腳次數。'], ['pike_pushup', 3, 5, 12, ''],
-        ['inverted_row', 3, 6, 12, ''], ['sl_glute_bridge', 3, 8, 15, '每腳次數。'],
-        ['superman', 2, 10, 15, ''], ['plank', 2, 20, 60, '次數欄填秒數。']] },
+        ['superman', 3, 10, 15, ''], ['sl_glute_bridge', 3, 8, 15, '每腳次數。'],
+        ['bench_dip', 2, 6, 15, '用穩固的椅子。'], ['plank', 2, 20, 60, '次數欄填秒數。']] },
     ] },
-  { id: 'shark', name: SHARK_PROGRAM.name, equip: ['db', 'cable'],
-    desc: '每週 4 次，上半身／下半身分開。需要啞鈴、Cable 滑輪和引體桿，適合有基礎的人。' },
+  { id: 'shark', place: 'home', name: SHARK_PROGRAM.name, equip: ['db', 'cable'],
+    desc: '居家健身房：每週 4 次，上半身／下半身分開。需要啞鈴、Cable 滑輪和引體桿，適合有基礎的人。' },
+  // ----- 健身房 -----
+  { id: 'gym_starter', place: 'gym', name: '健身房入門（器械為主）', equip: ['machine', 'loaded'],
+    desc: '全身訓練，每週 3 次，腿推日、臀推日輪流。以器械為主、動作軌跡固定，適合剛開始上健身房的人；各家機台重量不同，第一次先用輕重量找起點。',
+    days: [
+      { label: '腿推日', title: '全身・腿推／胸推／下拉', items: [
+        ['leg_press', 3, 10, 12, ''], ['machine_chest_press', 3, 8, 12, ''], ['machine_pulldown', 3, 8, 12, ''],
+        ['leg_ext', 2, 12, 15, ''], ['machine_lateral', 2, 12, 20, ''], ['machine_crunch', 2, 10, 15, '']] },
+      { label: '臀推日', title: '全身・臀推／肩推／划船', items: [
+        ['machine_hip_thrust', 3, 8, 12, ''], ['machine_shoulder_press', 3, 8, 12, ''], ['machine_row', 3, 8, 12, ''],
+        ['seated_leg_curl', 3, 10, 15, ''], ['machine_fly', 2, 12, 15, ''], ['machine_curl', 2, 10, 15, '']] },
+    ] },
+  { id: 'gym_ul', place: 'gym', name: '健身房上下半身四日（槓鈴＋器械）', equip: ['barbell', 'db', 'cable', 'machine', 'loaded'],
+    desc: '每週 4 次，上半身／下半身分開（例如一二四五）。以槓鈴基本動作為主、器械輔助，適合已經熟悉動作的人。',
+    days: [
+      { label: '上肢一', title: '臥推・划船・肩推', items: [
+        ['bb_bench', 4, 6, 10, ''], ['bb_row', 3, 8, 12, ''], ['machine_shoulder_press', 3, 8, 12, ''],
+        ['machine_pulldown', 3, 8, 12, ''], ['lateral', 3, 12, 20, '每側次數。'], ['pushdown', 3, 10, 15, '']] },
+      { label: '下肢一', title: '深蹲・RDL・腿推', items: [
+        ['bb_squat', 4, 6, 10, ''], ['bb_rdl', 3, 8, 10, ''], ['leg_press', 3, 10, 12, ''],
+        ['seated_leg_curl', 3, 10, 15, ''], ['machine_calf', 3, 10, 15, '']] },
+      { label: '上肢二', title: '上斜推・引體・後三角', items: [
+        ['bb_incline', 4, 6, 10, ''], ['pullup', 3, 1, 8, '做不到可用輔助引體機或彈力帶（模式選「輔助」）。'], ['machine_row', 3, 8, 12, ''],
+        ['machine_reverse_fly', 3, 12, 20, ''], ['cable_curl', 3, 10, 15, ''], ['cable_ohext', 3, 10, 15, '']] },
+      { label: '下肢二', title: '哈克蹲・臀推・分腿蹲', items: [
+        ['hack_squat', 3, 8, 12, ''], ['bb_hipthrust', 3, 8, 12, ''], ['split', 3, 8, 12, '每腳次數。'],
+        ['lying_leg_curl', 3, 10, 15, ''], ['leg_ext', 2, 12, 15, ''], ['machine_crunch', 2, 10, 15, '']] },
+    ] },
 ];
 
 
@@ -839,7 +876,7 @@ function migrate(src) {
   };
   if (!out.programs.some(p => p.id === out.activeProgram)) out.activeProgram = out.programs[0].id;
   // 早期範本的 A／B 命名 → 改成有意義的名稱
-  const OLD_NAMES = { '入門全身（啞鈴＋彈力帶＋徒手）': '居家入門（啞鈴＋彈力帶）', '徒手全身（不用器材）': '零器材徒手' };
+  const OLD_NAMES = { '入門全身（啞鈴＋彈力帶＋徒手）': '居家入門（啞鈴＋彈力帶）', '徒手全身（不用器材）': '居家零器材（徒手）', '零器材徒手': '居家零器材（徒手）' };
   const OLD_DAYS = { 'A|全身 A': ['深蹲日', '全身・深蹲／推／划船'], 'B|全身 B': ['弓步日', '全身・弓步／臥推／拉'], 'A|徒手 A': ['深蹲日', '徒手・深蹲／伏地挺身／划船'], 'B|徒手 B': ['分腿日', '徒手・分腿蹲／屈體推／臀橋'] };
   out.programs.forEach(p => {
     if (OLD_NAMES[p.name]) p.name = OLD_NAMES[p.name];
@@ -1249,7 +1286,7 @@ function renderDay() {
   loadDraft();
   const f = findDay(currentDay);
   $('#dayTitle').textContent = f ? `${f.day.label}｜${f.day.title}` : '尚未設定訓練日';
-  $('#dayNote').textContent = f ? `${f.program.name}` : '到「課表」新增訓練日';
+  $('#dayNote').innerHTML = `${f ? esc(f.program.name) : '這份課表還沒有訓練日'} <button class="link" id="switchProg">換課表</button>`;
   $('#sessionNotes').value = draft.notes || '';
   $('#painFlag').checked = !!draft.pain;
   renderExercises();
@@ -1881,22 +1918,58 @@ function bindProgramBar() {
 }
 
 // ---------- 課表範本 ----------
+const tplListHtml = () => [['home', '居家'], ['gym', '健身房']].map(([pl, label]) => `<h4>${label}</h4><div class="pick-list">${PROGRAM_TEMPLATES.filter(t => t.place === pl).map(t => `<button class="pick tpl" data-tpl="${t.id}"><b>${esc(t.name)}</b><small>${esc(t.desc)}${t.equip.length ? `<br>需要器材：${t.equip.map(id => PRESET_BY_ID[id]?.name).join('、')}` : '<br>不需要器材'}</small></button>`).join('')}</div>`).join('');
+// 套用範本：新增一份課表並設為使用中；fresh＝新帳號第一次選（取代還沒用過的預設課表）
+function applyTemplate(tid, addEquip, fresh) {
+  const t = PROGRAM_TEMPLATES.find(x => x.id === tid); if (!t) return;
+  const added = [];
+  if (addEquip) t.equip.forEach(id => {
+    const have = state.equipment.find(e => e.id === id);
+    if (!have) { const { desc, ...q } = PRESET_BY_ID[id]; state.equipment.push({ ...clone(q), owned: true }); added.push(q.name) }
+    else if (!have.owned) { have.owned = true; added.push(have.name) }
+  });
+  let p = fresh && tid === 'starter' ? state.programs.find(x => x.id === 'starter') : null;
+  if (!p) {
+    p = buildTemplate(t.id); p.id = uid('p'); p.days.forEach(d => d.id = newDayId());
+    if (fresh) state.programs = state.programs.filter(x => x.id !== 'starter');
+    state.programs.push(p);
+  }
+  invalidate(); setActiveProgram(p.id);
+  if (view === 'train') { initDaySelect(); renderDay(); programDirty = false }
+  return { p, added };
+}
 function openTemplates() {
   openDialog('從範本新增課表', `<p class="muted sm">加入後會成為一份新的課表並設為使用中，可以再自由修改；原本的課表和紀錄都不受影響。</p>
-    <div class="pick-list">${PROGRAM_TEMPLATES.map(t => `<button class="pick tpl" data-tpl="${t.id}"><b>${esc(t.name)}</b><small>${esc(t.desc)}${t.equip.length ? `<br>需要器材：${t.equip.map(id => PRESET_BY_ID[id]?.name).join('、')}` : ''}</small></button>`).join('')}</div>
-    <label class="check sm"><input id="tplEq" type="checkbox" checked> 同時把需要的器材加到「我的器材」</label>`);
+    ${tplListHtml()}<label class="check sm"><input id="tplEq" type="checkbox" checked> 同時把需要的器材加到「我的器材」</label>`);
   $$('#dlgBody [data-tpl]').forEach(b => b.onclick = () => {
-    const t = PROGRAM_TEMPLATES.find(x => x.id === b.dataset.tpl), p = buildTemplate(t.id);
-    p.id = uid('p'); p.days.forEach(d => d.id = newDayId());
-    const added = [];
-    if ($('#tplEq').checked) t.equip.forEach(id => {
-      const have = state.equipment.find(e => e.id === id);
-      if (!have) { const { desc, ...q } = PRESET_BY_ID[id]; state.equipment.push({ ...clone(q), owned: true }); added.push(q.name) }
-      else if (!have.owned) { have.owned = true; added.push(have.name) }
-    });
-    state.programs.push(p); closeDialog(); invalidate(); setActiveProgram(p.id);
-    toast(`已加入「${p.name}」並設為使用中${added.length ? `；器材已加入：${added.join('、')}` : ''}`);
+    const r = applyTemplate(b.dataset.tpl, $('#tplEq').checked); closeDialog();
+    toast(`已加入「${r.p.name}」並設為使用中${r.added.length ? `；器材已加入：${r.added.join('、')}` : ''}`);
   });
+}
+// 新帳號第一次進來：先選在哪裡練、用哪份課表，再開始使用教學
+function openSetup() {
+  let chosen = false;
+  const done = () => { if (state.prefs.setupDone) return; state.prefs.setupDone = true; persist(); setTimeout(startTour, 300) };
+  openDialog('歡迎！先選一份課表', `<p class="muted sm">你通常在哪裡練？選一份最接近的，之後隨時可以在訓練頁「換課表」，或到「課表」自己修改。需要的器材會一併加到「我的器材」。</p>
+    ${tplListHtml()}<div class="row-end"><button class="btn btn-light" id="setupSkip">先用預設（居家入門）</button></div>`);
+  $('#dlg').addEventListener('close', () => { if (!chosen) done() }, { once: true });
+  $$('#dlgBody [data-tpl]').forEach(b => b.onclick = () => {
+    chosen = true; const r = applyTemplate(b.dataset.tpl, true, true); closeDialog(); done();
+    toast(`已選「${r.p.name}」`);
+  });
+  $('#setupSkip').onclick = () => closeDialog();
+}
+// 訓練頁「換課表」：切換自己的課表，或從範本新增
+function openProgramPicker() {
+  openDialog('換課表', `<p class="muted sm">選一份作為訓練頁使用的課表；紀錄不受影響。</p>
+    <div class="pick-list">${state.programs.map(p => `<button class="pick ${p.id === state.activeProgram ? 'on' : ''}" data-prog="${esc(p.id)}"><b>${esc(p.name)}</b><small>${p.days.length} 個訓練日</small></button>`).join('')}</div>
+    <div class="row-end"><button class="btn btn-primary" id="ppTpl">從範本新增…</button></div>`);
+  $$('#dlgBody [data-prog]').forEach(b => b.onclick = () => {
+    closeDialog(); if (b.dataset.prog === state.activeProgram) return;
+    setActiveProgram(b.dataset.prog); if (view === 'train') { initDaySelect(); renderDay(); programDirty = false }
+    toast(`改用「${activeProgram().name}」`);
+  });
+  $('#ppTpl').onclick = openTemplates;
 }
 
 // ---------- AI 課表 ----------
@@ -2195,7 +2268,7 @@ const TOUR = [
   { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和「餘力」（做完還能再做幾下，不確定可以留空），完成就打勾。輸入會自動保存，換手機也接得上。' },
   { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」；有兩組以上同類器材時，動作名稱下面可以選今天用哪一個。' },
   { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
-  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「居家入門」（啞鈴＋彈力帶，深蹲日、弓步日輪流）。按「範本」可以換成「零器材徒手」或「SHARK 四日」，也可以自己新增；選中的就是訓練頁使用的那份。' },
+  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「居家入門」（啞鈴＋彈力帶，深蹲日、弓步日輪流）。按「範本」可以挑居家或健身房的課表，也可以自己新增；選中的就是訓練頁使用的那份。' },
   { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
   { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數和各動作的最佳紀錄，可以依部位（胸、背、腿…）或依器材分類，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
   { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材（啞鈴、彈力帶、Cable、器械…），再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
@@ -2631,6 +2704,15 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.02-9', date: '2026-10-02', title: '分頁與新手引導', items: [
+    '六個分頁加上圖示，目前所在的分頁用主色標示，一眼就看得出在哪裡。',
+    '新帳號第一次進來，會先請你選一份課表（居家或健身房），再開始使用教學；需要的器材會一併加入。',
+    '訓練頁的課表名稱旁邊多了「換課表」，可以直接切換課表或從範本新增，不用再到「課表」分頁找。'] },
+  { v: '2026.10.02-8', date: '2026-10-02', title: '範本分成居家與健身房', items: [
+    '居家：居家入門（啞鈴＋彈力帶）、居家零器材（徒手）、SHARK 四日（居家健身房）。',
+    '健身房：新增「健身房入門（器械為主）」和「健身房上下半身四日（槓鈴＋器械）」。',
+    '居家範本只用家裡做得到的動作：零器材課表把需要單槓或桌子的反式划船換成俯臥 Y 字上舉、超人式；居家入門把需要固定點的彈力帶面拉換成彈力帶分開。',
+    '新增動作：俯臥 Y 字上舉。'] },
   { v: '2026.10.02-7', date: '2026-10-02', title: '課表範本與彈力帶', items: [
     '新帳號的預設課表改成「居家入門」：啞鈴＋彈力帶＋徒手的全身訓練，每週 3 次，深蹲日、弓步日輪流。',
     '「課表」新增「範本」按鈕：居家入門、零器材徒手、SHARK 四日；加入時可順便把需要的器材加到「我的器材」。原本的課表不會被改動。',
@@ -2754,6 +2836,7 @@ $('#painFlag').onchange = e => { draft.pain = e.target.checked; saveDraft(); dra
 $('#saveSession').onclick = saveSession;
 $('#addExercise').onclick = addExerciseToday;
 $('#progTpl').onclick = openTemplates;
+$('#dayNote').addEventListener('click', e => { if (e.target.id === 'switchProg') openProgramPicker() });
 
 $$('[data-mode]').forEach(b => b.onclick = () => startTimer(b.dataset.mode));
 $$('[data-float]').forEach(b => b.onclick = () => { const a = b.dataset.float; a === 'next' ? nextSet() : a === 'pause' ? pauseTimer() : startTimer(a) });
@@ -2828,7 +2911,8 @@ boardReady = true; boardSoon();
 whatsNew();
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
-if (!state.prefs.tourDone && !state.sessions.length) setTimeout(startTour, 700);
+// 新帳號：先選課表，再看使用教學
+if (!state.prefs.tourDone && !state.sessions.length) setTimeout(() => state.prefs.setupDone ? startTour() : openSetup(), 700);
 
 return {
   get state() { return state },
