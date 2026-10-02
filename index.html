@@ -76,7 +76,7 @@ textarea.field{height:auto;min-height:70px;padding:9px 10px;resize:vertical}text
 .clock{font-size:clamp(38px,9vw,56px);font-weight:900;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
 .timer-total{text-align:right}.timer-total span{display:block;font-size:calc(11px * var(--fz,1));color:var(--muted);font-weight:700}.timer-total b{font-size:calc(18px * var(--fz,1));font-variant-numeric:tabular-nums}
 .timer-target{display:grid;grid-template-columns:1fr 120px;gap:8px;margin:12px 0 10px}
-.timer-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.timer-btns{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .tbtn{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:10px 4px;font-weight:800;font-size:calc(13.5px * var(--fz,1))}
 .tbtn.active{background:var(--teal);border-color:var(--teal);color:#fff}.tbtn.next{background:var(--teal2);border-color:var(--teal2);color:#fff}.tbtn.pause{color:#d97706}
 .timer-sub{display:flex;gap:14px;margin-top:10px;font-size:calc(12px * var(--fz,1));color:var(--muted)}.timer-sub b{color:var(--ink);font-variant-numeric:tabular-nums}
@@ -253,7 +253,7 @@ body.touring .float-timer{display:none}
   .summary{gap:6px}.stat{padding:8px 9px;border-radius:12px}.stat b{font-size:calc(18px * var(--fz,1))}.stat span,.stat small{font-size:calc(10.5px * var(--fz,1))}
   .tab{padding:8px 2px;font-size:calc(14px * var(--fz,1))}
   .toolbar{grid-template-columns:128px 1fr auto}
-  .timer-btns{grid-template-columns:repeat(6,1fr)}.timer-btns .tbtn{grid-column:span 2}.timer-btns .tbtn.next,.timer-btns .tbtn.pause{grid-column:span 3}
+  .timer-btns{grid-template-columns:repeat(3,1fr)}.timer-btns .tbtn{grid-column:auto}
   .timer-target{grid-template-columns:1fr 96px}
   .day-head h2{font-size:calc(19px * var(--fz,1))}.progress{width:90px}
   .ex{padding:12px 11px 9px}.ex-name{font-size:calc(16px * var(--fz,1))}
@@ -330,6 +330,39 @@ i.md{width:14px;height:14px}
 /* 大字體時，日期欄不夠寬 → 訓練日選單換到第二行 */
 html[data-font="l"] .toolbar,html[data-font="xl"] .toolbar{grid-template-columns:1fr auto}
 html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect{grid-column:1 / -1;grid-row:2}
+/* 浮動計時器：兩行（時間＋總時間／按鈕），多了「上一組」 */
+.float-timer{flex-direction:column;align-items:stretch;gap:7px;padding:8px 10px 9px}
+.ft-row{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
+.ft-total{flex:none;text-align:right;font-size:calc(11px * var(--fz,1));color:var(--muted);display:grid}.ft-total b{font-size:calc(16px * var(--fz,1));color:var(--ink);font-variant-numeric:tabular-nums}
+.ft-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.ft-btns button{padding:8px 2px;white-space:nowrap}
+.ft-btns .prev,.tbtn.prev{color:var(--muted)}
+/* 保存列：組數＋總時間 */
+.save-info{display:grid;gap:1px}.save-total b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* 目前這一組：計時中＝實心；暫停時下一個要做的組＝虛線框 */
+.set.timing,.set.cur{position:relative;border-radius:12px;padding:6px;margin:0 -6px}
+.set.timing{background:color-mix(in srgb,var(--teal) 16%,transparent);box-shadow:inset 0 0 0 2px var(--teal)}
+.set.cur{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--teal) 55%,transparent);background:color-mix(in srgb,var(--teal) 6%,transparent)}
+.set.timing .sn,.set.cur .sn{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:calc(11px * var(--fz,1))}
+.set.timing .sn{background:var(--teal);color:#fff}.set.cur .sn{border:2px solid var(--teal);color:var(--teal)}
+/* 加入主畫面教學的小插圖 */
+.hs-tabs{margin:2px 0 4px}
+.hs-steps{display:grid;gap:12px}
+.hs-step{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.hs-num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;font-weight:800;font-size:calc(13px * var(--fz,1))}
+.hs-body{display:grid;gap:6px;min-width:0}.hs-body small{font-size:calc(12px * var(--fz,1));line-height:1.5}
+.hs-mock{border:1px solid var(--line);border-radius:14px;background:var(--surface2);padding:10px;display:grid;gap:6px;max-width:340px}
+.hs-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:calc(13px * var(--fz,1))}
+.hs-url{flex:1;min-width:0;padding:7px 12px;border-radius:999px;background:var(--surface);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hs-mock svg{width:22px;height:22px;fill:currentColor}.hs-mock svg.ln{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hs-hit{display:inline-grid;place-items:center;min-width:38px;height:38px;padding:0 8px;border-radius:999px;color:var(--teal);background:color-mix(in srgb,var(--teal) 16%,var(--surface));box-shadow:0 0 0 2px var(--teal);animation:hsPulse 1.6s ease-in-out infinite}
+.hs-hit.hs-text{font-weight:800}
+.hs-menu{display:grid;border-radius:10px;overflow:hidden;background:var(--surface);font-size:calc(13px * var(--fz,1))}
+.hs-menu>div{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line);color:var(--muted)}.hs-menu>div:first-child{border-top:0}
+.hs-menu .hs-hit-row{color:var(--teal);font-weight:800;background:color-mix(in srgb,var(--teal) 14%,var(--surface));box-shadow:inset 0 0 0 2px var(--teal);border-radius:8px}
+.hs-dialog{display:grid;gap:4px;padding:8px 10px;border-radius:10px;background:var(--surface);font-size:calc(13px * var(--fz,1))}.hs-btns{display:flex;justify-content:flex-end;gap:14px;align-items:center;color:var(--muted)}
+.hs-note{font-size:calc(12px * var(--fz,1));color:var(--muted)}
+@keyframes hsPulse{0%,100%{box-shadow:0 0 0 2px var(--teal)}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--teal) 35%,transparent)}}
+@media (prefers-reduced-motion:reduce){.hs-hit{animation:none}}
 
   </style>
 </head>
@@ -376,7 +409,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
       <section id="mainTimer" class="card timer" aria-label="計時器">
         <div class="timer-top"><div><div id="timerStatus" class="muted sm">已暫停</div><div id="timerClock" class="clock">00:00.0</div></div><div class="timer-total"><span>總時間</span><b id="timerTotal">00:00</b></div></div>
         <div class="timer-target"><select id="timerExercise" class="field" aria-label="動作"></select><select id="timerSet" class="field" aria-label="組"></select></div>
-        <div class="timer-btns"><button class="tbtn" data-mode="work">動作</button><button class="tbtn" data-mode="interRest">組間休息</button><button class="tbtn" data-mode="intraRest">組內暫停</button><button class="tbtn next" id="timerNext">下一組</button><button class="tbtn pause" id="timerPause">暫停</button></div>
+        <div class="timer-btns"><button class="tbtn" data-mode="work">動作</button><button class="tbtn" data-mode="interRest">組間休息</button><button class="tbtn" data-mode="intraRest">組內暫停</button><button class="tbtn prev" id="timerPrev">上一組</button><button class="tbtn next" id="timerNext">下一組</button><button class="tbtn pause" id="timerPause">暫停</button></div>
         <div class="timer-sub"><span>動作 <b id="timeWork">00:00</b></span><span>組間 <b id="timeInter">00:00</b></span><span>組內 <b id="timeIntra">00:00</b></span></div>
       </section>
 
@@ -384,7 +417,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
       <div id="exerciseList" class="ex-list"></div>
       <button id="addExercise" class="btn btn-light add-ex">＋ 加入動作</button>
       <div class="card pad note-card"><textarea id="sessionNotes" class="field" placeholder="備註（選填）"></textarea><label class="check"><input id="painFlag" type="checkbox"> 有疼痛或不適（下次不加重）</label></div>
-      <div class="savebar"><div><b id="progressText">0/0</b> <span class="muted sm">組完成</span></div><button id="saveSession" class="btn btn-primary">完成並保存</button></div>
+      <div class="savebar"><div class="save-info"><div><b id="progressText">0/0</b> <span class="muted sm">組完成</span></div><div class="save-total muted sm">總時間 <b id="saveTotal">00:00</b></div></div><button id="saveSession" class="btn btn-primary">完成並保存</button></div>
     </section>
 
     <section id="analyticsView" class="view hidden">
@@ -453,10 +486,11 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
     </section>
 
     <section id="settingsView" class="view hidden">
-      <div class="card pad"><div class="card-h"><h3>顯示</h3></div>
+      <div class="card pad"><div class="card-h"><h3>顯示與操作</h3></div>
         <div class="lab">字體大小</div>
         <div id="fontSeg" class="seg font-seg"><button data-font="m">標準</button><button data-font="l">大</button><button data-font="xl">特大</button></div>
-        <p class="muted sm">所有文字一起放大，紀錄不受影響。深色／淺色可以按右上角的 ☀／☾ 切換。</p></div>
+        <p class="muted sm">所有文字一起放大，紀錄不受影響。深色／淺色可以按右上角的 ☀／☾ 切換。</p>
+        <label class="check"><input id="autoRest" type="checkbox"> 自動休息：正在計時的那一組打勾或填完次數，就自動開始組間休息</label></div>
       <div class="card pad"><div class="card-h"><h3>暱稱與排行榜</h3><button id="nickEdit" class="btn btn-light btn-sm">改暱稱</button></div>
         <p>暱稱：<b id="nickName"></b></p>
         <label class="check"><input id="boardOn" type="checkbox"> 參加排行榜（關閉後其他人看不到你的次數與重量）</label>
@@ -468,7 +502,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
         <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="">全部器材</option></select></div>
         <div id="libList" class="pick-list tall"></div></div>
       <div class="card pad"><div class="card-h"><h3>更新紀錄</h3><span id="appVersion" class="muted sm"></span></div><div id="changeLog"></div></div>
-      <div class="card pad"><div class="card-h"><h3>使用教學</h3><div class="row-inline"><button id="tplAgain" class="btn btn-light btn-sm">重新選課表</button><button id="tourStart" class="btn btn-light btn-sm">重看教學</button></div></div><p class="muted sm">教學一步步介紹計時器、重量建議、課表與排行，約 1 分鐘。「重新選課表」可以從居家或健身房的範本挑一份。</p></div>
+      <div class="card pad"><div class="card-h"><h3>使用教學</h3></div><div class="row-inline wrap"><button id="tourStart" class="btn btn-light btn-sm">重看教學</button><button id="tplAgain" class="btn btn-light btn-sm">重新選課表</button><button id="homeGuide" class="btn btn-light btn-sm">加入主畫面</button></div><p class="muted sm">教學一步步介紹計時器、重量建議、課表與排行，約 1 分鐘。「重新選課表」可以從居家或健身房的範本挑一份；「加入主畫面」教你把網站變成手機上的 App。</p></div>
       <div class="card pad"><h3>進步規則</h3>
         <ul class="rules">
           <li><b>加重</b>同一重量 2 組做到次數上限 → 下次加一級（啞鈴 +2 kg、Cable +1 格、槓鈴 +2.5 kg，可在器材調整）。</li>
@@ -485,7 +519,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
     </section>
   </main>
 
-  <div id="floatTimer" class="float-timer"><div class="ft-time"><b id="floatClock">00:00.0</b><span id="floatStatus"></span></div><div class="ft-btns"><button data-float="work">動作</button><button class="rest" data-float="interRest">休息</button><button class="next" data-float="next">下一組</button><button data-float="pause">暫停</button></div></div>
+  <div id="floatTimer" class="float-timer"><div class="ft-row"><div class="ft-time"><b id="floatClock">00:00.0</b><span id="floatStatus"></span></div><div class="ft-total">總時間<b id="floatTotal">00:00</b></div></div><div class="ft-btns"><button class="prev" data-float="prev">上一組</button><button data-float="work">動作</button><button class="rest" data-float="interRest">休息</button><button class="next" data-float="next">下一組</button><button data-float="pause">暫停</button></div></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <dialog id="dlg"><div class="dlg-head"><h3 id="dlgTitle"></h3><button id="dlgClose" class="icon-btn" aria-label="關閉">✕</button></div><div id="dlgBody" class="dlg-body"></div></dialog>
 
@@ -1243,8 +1277,29 @@ function loadDraft() {
   timerState = draft.timer;
 }
 function saveDraft() {
+  draft.touchedAt = Date.now(); // 重新打開時用來找「最近一份還沒保存的訓練」
   state.drafts[draftKey()] = draft;
   persist();
+}
+// ---------- 關掉／重新整理後接續 ----------
+// 離開畫面（關閉、切 App、鎖螢幕）時記下時間；回來時：30 分鐘內 → 計時照常繼續（含離開的時間）；
+// 超過 30 分鐘 → 計時停在離開的那一刻，避免出現好幾個小時的組間休息
+const AWAY_MAX = 30 * 60000;
+function markHidden() { if (draft && timerState?.active) { timerState.hiddenAt = nowMs(); saveDraft(); SYNC.flush() } }
+function resumeTimer(quiet) {
+  const t = timerState, a = t?.active; if (!t) return '';
+  const say = m => { if (!quiet) toast(m, 6000); return m };
+  if (!a) { delete t.hiddenAt; return '' }
+  const now = nowMs(), away = t.hiddenAt ? now - t.hiddenAt : 0;
+  if (t.hiddenAt && away > AWAY_MAX) {
+    const end = t.hiddenAt;
+    t.segments.push({ id: uid(), type: a.type, start: a.startedAt, end, duration: Math.max(0, end - a.startedAt), exId: a.exId, setIndex: a.setIndex });
+    t.active = null; delete t.hiddenAt; saveDraft(); renderTimer();
+    return say(`離開超過 ${Math.round(away / 60000)} 分鐘，計時已停在離開的時間；要繼續請按「動作」或「組間休息」`);
+  }
+  if (!t.hiddenAt && now - a.startedAt > 3 * 3600000) { t.active = null; saveDraft(); renderTimer(); return say('上次的計時沒有正常結束，已經停止；紀錄都還在') }
+  delete t.hiddenAt; // 回來時只改手機裡的資料，不另外寫入雲端（下次輸入時會一起同步）
+  return '';
 }
 
 // ---------- 畫面 ----------
@@ -1341,12 +1396,18 @@ function onSetInput(ev) {
   const card = el.closest('.ex'), row = el.closest('.set'); if (!card || !row) return;
   const i = +card.dataset.i, j = +row.dataset.j, e = draft.exercises[i], x = e.sets[j];
   if (!draft.startedAt) draft.startedAt = Date.now(); // 排行榜次數：第一次輸入 → 保存的時間
+  const wasDone = !!x.done;
   if (f === 'done') x.done = el.checked;
   else if (f === 'mode') { x.mode = el.value; if (x.mode !== 'assist') x.assist = ''; if (x.mode !== 'weighted') x.load = 0; row.outerHTML = setRowHtml(e, x, j); renderTimer() }
   else if (f === 'assist') x.assist = el.value.trim();
   else x[f] = num(el.value);
   if (f === 'reps' && hasReps(x) && ev.type === 'change' && !x.done) { x.done = true; const b = $('.donebox', row); if (b) b.checked = true }
   saveDraft(); refreshCard(i); updateProgress();
+  // 自動休息：正在計時「動作」的那一組被打勾（或填完次數）→ 直接開始組間休息；改別組、沒在計時都不會觸發
+  const a = timerState?.active;
+  if (!wasDone && x.done && state.prefs.autoRest !== false && a?.type === 'work' && a.exId === e.id && a.setIndex === j) {
+    startTimer('interRest'); toast(`第 ${j + 1} 組完成，開始組間休息`);
+  }
 }
 function onCardAction(ev) {
   const b = ev.target.closest('[data-act]'); if (!b) return;
@@ -1503,6 +1564,21 @@ function nextSet() {
   saveDraft(); renderTimer();
   $(`.ex[data-i="${i}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+// 上一組：誤按「下一組」時用。剛開始不到 15 秒的計時直接作廢；回到的那組如果還沒填次數，取消打勾
+function prevSet() {
+  if (!draft.exercises.length) return;
+  const seg = closeActive(), running = !!seg;
+  if (seg && seg.duration < 15000) timerState.segments = timerState.segments.filter(s => s !== seg);
+  let i = draft.exercises.findIndex(e => e.id === $('#timerExercise').value), j = (+$('#timerSet').value || 0) - 1;
+  if (i < 0) i = 0;
+  if (j < 0) { if (i === 0) { saveDraft(); renderTimer(); return toast('已經是第一組') } i--; j = draft.exercises[i].sets.length - 1 }
+  const e = draft.exercises[i], x = e.sets[j];
+  if (x?.done && !hasReps(x) && !(Number(x.dur) > 0)) { x.done = false; const box = $(`.ex[data-i="${i}"] .set[data-j="${j}"] .donebox`); if (box) box.checked = false; updateProgress() }
+  $('#timerExercise').value = e.id; setupSetSelector(); $('#timerSet').value = j;
+  if (running) timerState.active = { type: 'work', startedAt: nowMs(), exId: e.id, setIndex: j };
+  saveDraft(); renderTimer(); toast(`回到 ${e.name} 第 ${j + 1} 組`);
+  $(`.ex[data-i="${i}"] .set[data-j="${j}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 function retarget() {
   if (!timerState.active) return;
   const type = timerState.active.type; closeActive();
@@ -1537,6 +1613,8 @@ function renderTimer() {
   $('#timerClock').textContent = fmtClock(cur, true); $('#timerTotal').textContent = fmtClock(t.total);
   $('#timeWork').textContent = fmtClock(t.work); $('#timeInter').textContent = fmtClock(t.interRest); $('#timeIntra').textContent = fmtClock(t.intraRest);
   $('#timerStatus').textContent = status; $('#floatClock').textContent = fmtClock(cur, true); $('#floatStatus').textContent = status;
+  $('#floatTotal').textContent = fmtClock(t.total); $('#saveTotal').textContent = fmtClock(t.total);
+  const tgtEx = a ? a.exId : $('#timerExercise').value, tgtSet = a ? a.setIndex : +$('#timerSet').value || 0;
   $$('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === a?.type));
   $$('.ex').forEach(card => {
     const e = draft.exercises[+card.dataset.i]; if (!e) return;
@@ -1545,8 +1623,9 @@ function renderTimer() {
     const live = $('.ex-time', card); $('span', live).textContent = on ? TYPE_NAME[a.type] : '累積'; $('strong', live).textContent = fmtClock(on ? cur : work);
     $$('.set-time', card).forEach(el => {
       const j = +el.dataset.j, mine = all.filter(s => s.exId === e.id && +s.setIndex === j), sum = k => mine.filter(s => s.type === k).reduce((n, s) => n + s.duration, 0);
-      const active = on && a.setIndex === j;
-      el.closest('.set').classList.toggle('timing', active);
+      const active = on && a.setIndex === j, row = el.closest('.set');
+      row.classList.toggle('timing', active);
+      row.classList.toggle('cur', !a && e.id === tgtEx && j === tgtSet); // 暫停時：下一個要做的組
       el.textContent = mine.length ? `動作 ${fmtClock(sum('work'))} · 組間 ${fmtClock(sum('interRest'))}${sum('intraRest') ? ' · 組內 ' + fmtClock(sum('intraRest')) : ''}${active ? ' · 計時中' : ''}` : '';
     });
   });
@@ -2300,7 +2379,7 @@ const TOUR = [
   { view: 'train', el: '.tabs', title: '六個分頁', text: '訓練、統計、歷史、課表、排行、設定。大部分時間只會用到「訓練」。' },
   { view: 'train', el: '.toolbar', title: '選日期與訓練日', text: '預設是今天和課表輪到的那一天，也可以手動切換。「清空」會清掉今天還沒保存的輸入。' },
   { view: 'train', el: '#dayNote', title: '換課表', text: '這裡顯示目前用的課表。想換成居家、健身房或其他課表，按「換課表」；之後也可以在「設定 → 使用教學 → 重新選課表」挑範本。' },
-  { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」，會自動勾選這組完成；休息完按「下一組」。往下捲時，上方會出現小計時列。' },
+  { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」會自動勾選這組；反過來，直接打勾或填完次數，也會自動開始休息。休息完按「下一組」，按錯可以按「上一組」。往下捲時，上方會出現小計時列。' },
   { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是依上次表現算出的建議重量。2 組做到次數上限，或 1 組做到上限還有餘力，下次就會建議加重；到器材上限會出現「升階」。' },
   { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和「餘力」（做完還能再做幾下，不確定可以留空），完成就打勾。輸入會自動保存，換手機也接得上。' },
   { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」；有兩組以上同類器材時，動作名稱下面可以選今天用哪一個。' },
@@ -2310,6 +2389,7 @@ const TOUR = [
   { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數和各動作的最佳紀錄，可以依部位（胸、背、腿…）或依器材分類，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
   { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材（啞鈴、彈力帶、Cable、器械…），再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
   { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
+  { view: 'settings', el: '#homeGuide', title: '加入主畫面', text: '把網站加到手機主畫面，用起來就像 App（全螢幕、開得更快）。教學結束後會用圖示一步步帶你做，之後也可以按這裡重看。' },
   { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看教學或重新選課表，到「設定 → 使用教學」；字太小可以到「設定 → 顯示」調大。' },
 ];
 let tourStep = -1;
@@ -2356,6 +2436,7 @@ function endTour(skipped) {
   if (!state.prefs.tourDone) { state.prefs.tourDone = true; persist() }
   switchView('train'); window.scrollTo({ top: 0 });
   if (skipped) toast('之後可以到「設定 → 使用教學」重看教學、重新選課表', 6000);
+  setTimeout(homeTip, 700);
 }
 window.addEventListener('resize', () => { if (tourStep >= 0) placeTour() });
 window.addEventListener('scroll', () => { if (tourStep >= 0) placeTour() }, { passive: true });
@@ -2742,6 +2823,23 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.03-4', date: '2026-10-03', title: '更新時不打斷訓練', items: [
+    '訓練到一半剛好遇到網站更新，重新整理後會直接接續，計時照常繼續；「更新了什麼」等下次打開再顯示。',
+    '用舊版開始的訓練，更新後也能接續。',
+    '回到畫面時不再額外同步，更省流量。'] },
+  { v: '2026.10.03-3', date: '2026-10-03', title: '不小心關掉也能接續', items: [
+    '訓練到一半關掉網頁、重新整理或切到別的 App，再打開會自動回到那一天，已填的重量、次數都還在，畫面下方會提示「已接續」。',
+    '計時器不會因為關掉而中斷：30 分鐘內回來，計時照常繼續（離開的時間也算進去）。',
+    '離開超過 30 分鐘才回來，計時會停在離開的那一刻，避免多出好幾個小時的休息時間。'] },
+  { v: '2026.10.03-2', date: '2026-10-03', title: '自動休息', items: [
+    '正在計時的那一組打勾或填完次數，會自動開始組間休息，不用再按「組間休息」。',
+    '只對「正在計時動作」的那一組有效：修改其他組、或沒有用計時器時都不會觸發。',
+    '不喜歡的話，可以到「設定 → 顯示與操作」關掉。'] },
+  { v: '2026.10.03-1', date: '2026-10-03', title: '上一組、總時間、加入主畫面教學', items: [
+    '計時器和浮動計時器都多了「上一組」：不小心按到「下一組」可以退回，剛開始不到 15 秒的計時會作廢，還沒填次數的那組也會取消打勾。',
+    '浮動計時器改成兩行，多顯示總時間；底部「完成並保存」那一列也會顯示總時間。',
+    '目前在做的那一組會整列標示（計時中＝實心框，暫停時下一個要做的組＝淡框），一眼看得出做到哪裡。',
+    '新增「加入主畫面」圖解教學（iPhone／iPad、Android）：教學結束後會出現一次，之後在「設定 → 使用教學」可以重看；Android 支援時可以一鍵安裝。'] },
   { v: '2026.10.02-10', date: '2026-10-02', title: '字體大小、手機版面、成員管理', items: [
     '「設定 → 顯示」可以調整字體大小（標準／大／特大），所有文字一起放大。',
     'iPhone 版面修正：對話框不再貼到螢幕上緣；浮動計時器不會擋到狀態列的時間，往下滑時的位置也避開了上方的模糊區。',
@@ -2818,6 +2916,62 @@ function whatsNew() {
   $('#wnOk').onclick = closeDialog;
 }
 
+// ===== 06.95 · 加入主畫面（圖解教學）=====
+// iPhone／iPad：Safari「⋯」→「分享」→「加入主畫面」（舊版 iOS 是下方的分享按鈕）
+// Android：Chrome 右上角「⋮」→「安裝應用程式」或「加到主畫面」；支援時直接顯示「一鍵安裝」
+// 每台裝置只自動提示一次（記在這台裝置），已經是 App 模式就不提示
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e });
+
+const HI = {
+  dots: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  vdots: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
+  share: '<svg viewBox="0 0 24 24" class="ln"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8"/></svg>',
+  add: '<svg viewBox="0 0 24 24" class="ln"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+};
+// 小插圖：模擬手機畫面的一小塊，要點的地方會發亮
+const mock = html => `<div class="hs-mock">${html}</div>`;
+const IOS_STEPS = [
+  ['在 Safari 打開這個網站，點網址列旁邊的「⋯」', mock(`<div class="hs-bar"><span class="hs-url">kami710570.github.io</span><span class="hs-hit">${HI.dots}</span></div>`), '舊版 iOS 或 iPad：直接點畫面上的「分享」按鈕（方框加向上箭頭）。'],
+  ['點「分享」', mock(`<div class="hs-menu"><div>加入書籤</div><div class="hs-hit-row">${HI.share}分享</div><div>在頁面中尋找</div></div>`), ''],
+  ['往下滑，點「加入主畫面」', mock(`<div class="hs-menu"><div>拷貝</div><div>加入閱讀列表</div><div class="hs-hit-row">${HI.add}加入主畫面</div></div>`), '找不到的話，點最下面的「編輯動作」或「更多」。'],
+  ['確認名稱後，點右上角「加入」', mock(`<div class="hs-bar"><span>取消</span><b>加入主畫面</b><span class="hs-hit hs-text">加入</span></div><div class="hs-note">「以網頁 App 開啟」的開關保持打開（預設就是開的）</div>`), ''],
+];
+const ANDROID_STEPS = [
+  ['在 Chrome 打開這個網站，點右上角的「⋮」', mock(`<div class="hs-bar"><span class="hs-url">kami710570.github.io</span><span class="hs-hit">${HI.vdots}</span></div>`), ''],
+  ['點「安裝應用程式」或「加到主畫面」', mock(`<div class="hs-menu"><div>新增分頁</div><div>書籤</div><div class="hs-hit-row">${HI.add}安裝應用程式／加到主畫面</div></div>`), '三星瀏覽器：點下方「≡」→「新增頁面至」→「主畫面」。'],
+  ['點「安裝」或「新增」', mock(`<div class="hs-dialog"><b>安裝應用程式？</b><div>SHARK Fitness</div><div class="hs-btns"><span>取消</span><span class="hs-hit hs-text">安裝</span></div></div>`), ''],
+];
+const stepsHtml = steps => steps.map(([t, pic, tip], k) => `<div class="hs-step"><div class="hs-num">${k + 1}</div><div class="hs-body"><b>${t}</b>${pic}${tip ? `<small class="muted">${tip}</small>` : ''}</div></div>`).join('');
+function openHomeGuide(auto) {
+  try { localStorage.setItem('shark-home-tip', '1') } catch { }
+  if (isStandalone()) { if (!auto) openDialog('加入主畫面', '<p>你現在已經是從主畫面打開（App 模式），不用再加了。</p>'); return }
+  const tab = isIOS() ? 'ios' : 'android';
+  openDialog('把 SHARK 加到主畫面', `<p class="muted sm">加到主畫面後，從手機桌面的圖示打開就像 App：全螢幕、沒有網址列，開起來也比較快。只要做一次。</p>
+    <div class="seg seg2 hs-tabs"><button data-hs="ios" class="${tab === 'ios' ? 'on' : ''}">iPhone／iPad</button><button data-hs="android" class="${tab === 'android' ? 'on' : ''}">Android</button></div>
+    <div class="hs-steps" data-for="ios" ${tab === 'ios' ? '' : 'hidden'}>${stepsHtml(IOS_STEPS)}</div>
+    <div class="hs-steps" data-for="android" ${tab === 'android' ? '' : 'hidden'}>${installEvt ? '<button class="btn btn-primary" id="hsInstall">一鍵安裝</button><p class="muted sm">或照下面的步驟：</p>' : ''}${stepsHtml(ANDROID_STEPS)}</div>
+    <p class="muted sm">之後想再看，到「設定 → 使用教學 → 加入主畫面」。</p>
+    <div class="row-end"><button class="btn btn-light" id="hsOk">知道了</button></div>`);
+  $$('#dlgBody [data-hs]').forEach(b => b.onclick = () => {
+    $$('#dlgBody [data-hs]').forEach(x => x.classList.toggle('on', x === b));
+    $$('#dlgBody .hs-steps').forEach(x => x.hidden = x.dataset.for !== b.dataset.hs);
+  });
+  $('#hsOk').onclick = closeDialog;
+  if ($('#hsInstall')) $('#hsInstall').onclick = async () => { const e = installEvt; installEvt = null; closeDialog(); try { await e.prompt() } catch { } };
+}
+// 自動提示（每台裝置一次）：等目前的對話框關掉再出現
+function homeTip() {
+  let seen = false; try { seen = localStorage.getItem('shark-home-tip') === '1' } catch { }
+  if (seen) return;
+  if (isStandalone()) { try { localStorage.setItem('shark-home-tip', '1') } catch { } return }
+  const d = $('#dlg');
+  if (d.open) d.addEventListener('close', () => setTimeout(homeTip, 400), { once: true });
+  else if (!document.body.classList.contains('touring')) openHomeGuide(true);
+}
+
 // ===== 07 · 切換分頁、事件綁定、啟動 =====
 function persist(msg) { SYNC.persist(); if (msg) toast(msg) }
 function toast(t, ms = 2400) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), ms) }
@@ -2829,6 +2983,7 @@ function applyTheme() {
   const fz = ['m', 'l', 'xl'].includes(state.prefs.fontSize) ? state.prefs.fontSize : 'm';
   document.documentElement.dataset.font = fz;
   $$('#fontSeg [data-font]').forEach(b => b.classList.toggle('on', b.dataset.font === fz));
+  $('#autoRest').checked = state.prefs.autoRest !== false;
   try { localStorage.setItem('shark-font', fz) } catch { }
 }
 const VIEWS = { train: 'trainView', stats: 'analyticsView', history: 'historyView', program: 'programView', board: 'boardView', settings: 'settingsView', members: 'membersView' };
@@ -2868,6 +3023,13 @@ function remoteRefresh(flags) {
 // ---------- 綁定 ----------
 $('#sessionDate').value = today();
 currentDay = nextDayId();
+// 重新打開時：接續最近一份還沒保存的訓練（12 小時內有動過；就算當時選的不是課表輪到的那天）
+// 舊版存的草稿沒有 touchedAt（剛好在訓練中更新版本）：改看計時的時間；連計時都沒有，就看是不是今天的
+const touchOf = d => d.touchedAt || Math.max(0, d.timer?.active?.startedAt || 0, ...(d.timer?.segments || []).map(s => s.end || 0));
+const recent = d => { const t = touchOf(d); return t ? Date.now() - t < 12 * 3600000 : d.date === today() };
+const resumed = Object.values(state.drafts).filter(d => d?.day && d.date && (draftHasData(d) || d.timer?.active) && recent(d))
+  .sort((x, y) => touchOf(y) - touchOf(x))[0];
+if (resumed && activeProgram().days.some(d => d.id === resumed.day)) { $('#sessionDate').value = resumed.date; currentDay = resumed.day }
 initDaySelect();
 $('#themeToggle').onclick = () => { state.prefs.theme = state.prefs.theme === 'dark' ? 'light' : 'dark'; applyTheme(); persist(); if (view === 'stats') renderChart() };
 $$('.tab').forEach(t => t.onclick = () => switchView(t.dataset.view));
@@ -2888,11 +3050,12 @@ $('#progTpl').onclick = openTemplates;
 $('#dayNote').addEventListener('click', e => { if (e.target.id === 'switchProg') openProgramPicker() });
 
 $$('[data-mode]').forEach(b => b.onclick = () => startTimer(b.dataset.mode));
-$$('[data-float]').forEach(b => b.onclick = () => { const a = b.dataset.float; a === 'next' ? nextSet() : a === 'pause' ? pauseTimer() : startTimer(a) });
+$$('[data-float]').forEach(b => b.onclick = () => { const a = b.dataset.float; a === 'next' ? nextSet() : a === 'prev' ? prevSet() : a === 'pause' ? pauseTimer() : startTimer(a) });
+$('#timerPrev').onclick = prevSet;
 $('#timerPause').onclick = () => pauseTimer();
 $('#timerNext').onclick = nextSet;
-$('#timerExercise').onchange = () => { setupSetSelector(); retarget() };
-$('#timerSet').onchange = retarget;
+$('#timerExercise').onchange = () => { setupSetSelector(); retarget(); renderTimer() };
+$('#timerSet').onchange = () => { retarget(); renderTimer() };
 window.addEventListener('scroll', updateFloating, { passive: true });
 window.addEventListener('resize', () => { updateFloating(); if (view === 'stats') renderChart() });
 setInterval(() => { if (timerState?.active) renderTimer() }, 100);
@@ -2926,13 +3089,18 @@ $('#memberSeg').onclick = e => { const b = e.target.closest('[data-mf]'); if (b)
 $('#memberSearch').oninput = () => renderMembers(true);
 $('#fontSeg').onclick = e => { const b = e.target.closest('[data-font]'); if (!b) return; state.prefs.fontSize = b.dataset.font; applyTheme(); persist('已調整字體大小') };
 $('#tplAgain').onclick = openTemplates;
+$('#autoRest').onchange = e => { state.prefs.autoRest = e.target.checked; persist(e.target.checked ? '已開啟自動休息' : '已關閉自動休息') };
 $('#dlgClose').onclick = closeDialog;
 $('#dlg').addEventListener('click', e => { if (e.target === $('#dlg')) closeDialog() });
 document.addEventListener('focusout', () => setTimeout(() => { if (remoteRefresh.pending) remoteRefresh({}) }, 60));
-window.addEventListener('beforeunload', () => { if (timerState?.active) { closeActive(); saveDraft() } });
+// 關閉、重新整理、切到別的 App：先記下離開時間並立刻同步（計時不中斷，回來再判斷）
+window.addEventListener('beforeunload', markHidden);
+window.addEventListener('pagehide', markHidden);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') markHidden() });
 
 initMembers();
 renderAll();
+{ const msg = resumeTimer(!!resumed); if (resumed) setTimeout(() => toast(msg ? '已接續上次還沒保存的訓練。' + msg : '已接續上次還沒保存的訓練：輸入和計時都還在', msg ? 7000 : 4500), 900) }
 // 每天第一次開啟：整理資料、提醒備份與舊草稿
 function dailyCheck() {
   const r = maintain(false); backupReminder(); if (!r) return;
@@ -2953,7 +3121,7 @@ function onDayChange() {
   if (draftHasData(draft)) return toast('已經跨日：昨天的訓練還沒保存，記得按「完成並保存」');
   switchDraft(() => { $('#sessionDate').value = t; currentDay = nextDayId() || currentDay; initDaySelect() });
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') onDayChange() });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { resumeTimer(); onDayChange() } });
 window.addEventListener('focus', onDayChange);
 $('#tourStart').onclick = startTour;
 $('#boardView').addEventListener('click', onBoardClick);
@@ -2963,7 +3131,13 @@ $('#boardBack').onclick = () => { BOARD.cat = null; renderBoard() };
 $('#nickEdit').onclick = () => editNickname();
 $('#boardOn').onchange = e => { state.prefs.boardOff = !e.target.checked; persist(e.target.checked ? '已參加排行榜' : '已退出排行榜，其他人看不到你的資料'); boardSoon() };
 boardReady = true; boardSoon();
-whatsNew();
+$('#homeGuide').onclick = () => openHomeGuide();
+// 訓練到一半重新打開（例如剛好遇到更新）：先不跳「更新了什麼」和教學，等下次打開再顯示，不打斷訓練
+if (!resumed) {
+  whatsNew();
+  // 已看過教學的人：這次更新後提示一次「加入主畫面」（新帳號則在教學結束後提示）
+  if (state.prefs.tourDone || state.sessions.length) setTimeout(homeTip, 1200);
+}
 $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
 $('#fastUp').onchange = e => { state.prefs.fastUp = e.target.value === 'on'; invalidate(); persist('已更新加重規則') };
 // 新帳號：先選課表，再看使用教學
