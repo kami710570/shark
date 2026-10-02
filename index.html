@@ -386,7 +386,7 @@ i.md{width:14px;height:14px}
     <section id="historyView" class="view hidden"><div id="historyList" class="h-list"></div></section>
 
     <section id="programView" class="view hidden">
-      <div class="card pad"><div class="prog-bar"><select id="progSelect" class="field" aria-label="使用中的課表"></select><div class="row-inline"><button id="progTpl" class="btn btn-primary btn-sm">範本</button><button id="progNew" class="btn btn-light btn-sm">新增</button><button id="progCopy" class="btn btn-light btn-sm">複製</button><button id="progRename" class="btn btn-light btn-sm">改名</button><button id="progDelete" class="btn btn-light btn-sm">刪除</button></div></div><p class="muted sm">選中的課表就是訓練頁使用的課表。可以從「範本」挑一份（入門全身、徒手全身、SHARK 四日）再修改；修改會自動保存，歷史紀錄不受影響。</p></div>
+      <div class="card pad"><div class="prog-bar"><select id="progSelect" class="field" aria-label="使用中的課表"></select><div class="row-inline"><button id="progTpl" class="btn btn-primary btn-sm">範本</button><button id="progNew" class="btn btn-light btn-sm">新增</button><button id="progCopy" class="btn btn-light btn-sm">複製</button><button id="progRename" class="btn btn-light btn-sm">改名</button><button id="progDelete" class="btn btn-light btn-sm">刪除</button></div></div><p class="muted sm">選中的課表就是訓練頁使用的課表。可以從「範本」挑一份（居家入門、零器材徒手、SHARK 四日）再修改；修改會自動保存，歷史紀錄不受影響。</p></div>
       <div id="dayList" class="day-list"></div>
       <button id="dayAdd" class="btn btn-light wide">＋ 新增訓練日</button>
       <div class="card pad"><h3>用 AI 產生課表</h3><p class="muted sm">1. 填好條件　2. 複製指令，貼到任一 AI 對話　3. 把 AI 回覆的 JSON 貼回下方匯入</p>
@@ -728,28 +728,28 @@ const SHARK_PROGRAM = {
 };
 
 // 課表範本：新帳號預設「入門全身」；其他可在「課表 → 範本」加入
-// 格式同上：[動作 id, 組數, 次數下限, 次數上限, 提醒]；設計依一般訓練原則（每個主要肌群每週約 6–12 組、A／B 輪流）
+// 格式同上：[動作 id, 組數, 次數下限, 次數上限, 提醒]；設計依一般訓練原則（每個主要肌群每週約 6–12 組、兩個訓練日輪流）
 const PROGRAM_TEMPLATES = [
-  { id: 'starter', name: '入門全身（啞鈴＋彈力帶＋徒手）', equip: ['db', 'band'],
-    desc: '每週 3 次，A、B 輪流（例如一三五）。需要一對啞鈴、一條彈力帶和一張穩固的椅子，每次約 40–50 分鐘。',
+  { id: 'starter', name: '居家入門（啞鈴＋彈力帶）', equip: ['db', 'band'],
+    desc: '全身訓練，每週 3 次，深蹲日、弓步日輪流（例如一三五）。需要一對啞鈴、一條彈力帶和一張穩固的椅子，每次約 40–50 分鐘。',
     days: [
-      { label: 'A', title: '全身 A', items: [
+      { label: '深蹲日', title: '全身・深蹲／推／划船', items: [
         ['goblet', 3, 8, 12, '雙手捧一顆啞鈴。'], ['pushup', 3, 5, 15, '做不到 5 下：先改跪姿或上斜伏地挺身。'],
         ['one_row', 3, 8, 12, '每側次數；一手一膝撐在椅子上。'], ['rdl', 3, 8, 12, ''],
         ['band_lateral', 2, 12, 20, ''], ['plank', 2, 20, 60, '次數欄填秒數。']] },
-      { label: 'B', title: '全身 B', items: [
+      { label: '弓步日', title: '全身・弓步／臥推／拉', items: [
         ['rev_lunge', 3, 8, 12, '每腳次數。'], ['db_floor_press', 3, 8, 12, '躺在地上做，不需要臥推椅。'],
         ['band_row', 3, 10, 15, '彈力帶繞過腳底。'], ['glute_bridge', 3, 10, 20, '太輕時把啞鈴放在髖部，模式選「負重」。'],
         ['band_facepull', 2, 12, 20, ''], ['curl', 2, 8, 12, ''], ['deadbug', 2, 8, 12, '每側次數。']] },
     ] },
-  { id: 'bodyweight', name: '徒手全身（不用器材）', equip: [],
-    desc: '每週 3 次，A、B 輪流。只需要地板和一張穩固的椅子或桌子，適合在家或出差。',
+  { id: 'bodyweight', name: '零器材徒手', equip: [],
+    desc: '全身訓練，每週 3 次，深蹲日、分腿日輪流。不用任何器材，只需要地板和一張穩固的椅子或桌子，適合在家或出差。',
     days: [
-      { label: 'A', title: '徒手 A', items: [
+      { label: '深蹲日', title: '徒手・深蹲／伏地挺身／划船', items: [
         ['bw_squat', 3, 10, 20, ''], ['pushup', 3, 5, 15, '做不到 5 下：先改跪姿或上斜伏地挺身。'],
         ['inverted_row', 3, 6, 12, '用穩固的桌子或低單槓；身體越平越難。'], ['glute_bridge', 3, 10, 20, ''],
         ['side_plank', 2, 20, 45, '每側秒數。'], ['bw_crunch', 2, 10, 20, '']] },
-      { label: 'B', title: '徒手 B', items: [
+      { label: '分腿日', title: '徒手・分腿蹲／屈體推／臀橋', items: [
         ['bw_split', 3, 8, 15, '每腳次數。'], ['pike_pushup', 3, 5, 12, ''],
         ['inverted_row', 3, 6, 12, ''], ['sl_glute_bridge', 3, 8, 15, '每腳次數。'],
         ['superman', 2, 10, 15, ''], ['plank', 2, 20, 60, '次數欄填秒數。']] },
@@ -838,6 +838,13 @@ function migrate(src) {
     bodyMetrics: Array.isArray(s.bodyMetrics) ? s.bodyMetrics : [],
   };
   if (!out.programs.some(p => p.id === out.activeProgram)) out.activeProgram = out.programs[0].id;
+  // 早期範本的 A／B 命名 → 改成有意義的名稱
+  const OLD_NAMES = { '入門全身（啞鈴＋彈力帶＋徒手）': '居家入門（啞鈴＋彈力帶）', '徒手全身（不用器材）': '零器材徒手' };
+  const OLD_DAYS = { 'A|全身 A': ['深蹲日', '全身・深蹲／推／划船'], 'B|全身 B': ['弓步日', '全身・弓步／臥推／拉'], 'A|徒手 A': ['深蹲日', '徒手・深蹲／伏地挺身／划船'], 'B|徒手 B': ['分腿日', '徒手・分腿蹲／屈體推／臀橋'] };
+  out.programs.forEach(p => {
+    if (OLD_NAMES[p.name]) p.name = OLD_NAMES[p.name];
+    (p.days || []).forEach(d => { const n = OLD_DAYS[d.label + '|' + d.title]; if (n) [d.label, d.title] = n });
+  });
   // 舊版覆寫紀錄：把當時的計畫組數寫進紀錄，之後改課表也不影響判斷
   const shark = out.programs.find(p => p.id === 'shark') || buildShark(s.settings);
   out.sessions.forEach(sess => {
@@ -2181,17 +2188,17 @@ function dropBoard(uid) {
 const TOUR = [
   { title: '歡迎使用 SHARK Fitness', text: '花 1 分鐘認識主要功能。隨時可以按「略過」，之後在「設定 → 使用教學」重看。' },
   { view: 'train', el: '.summary', title: '摘要', text: '本週練了幾次、上次練什麼，以及下一次該練哪一天。點綠色的「下一次」可以直接開始。' },
-  { view: 'train', el: '.tabs', title: '五個分頁', text: '訓練、統計、歷史、課表、設定。大部分時間只會用到「訓練」。' },
+  { view: 'train', el: '.tabs', title: '六個分頁', text: '訓練、統計、歷史、課表、排行、設定。大部分時間只會用到「訓練」。' },
   { view: 'train', el: '.toolbar', title: '選日期與訓練日', text: '預設是今天和課表輪到的那一天，也可以手動切換。「清空」會清掉今天還沒保存的輸入。' },
   { view: 'train', el: '#mainTimer', title: '計時器', text: '選好動作和組別，按「動作」開始。做完按「組間休息」，會自動勾選這組完成；休息完按「下一組」。往下捲時，上方會出現小計時列。' },
   { view: 'train', el: '.ex .advice', title: '重量建議', text: '「今天」是依上次表現算出的建議重量。2 組做到次數上限，或 1 組做到上限還有餘力，下次就會建議加重；到器材上限會出現「升階」。' },
   { view: 'train', el: '.ex .sets', title: '記錄每一組', text: '填重量、次數和「餘力」（做完還能再做幾下，不確定可以留空），完成就打勾。輸入會自動保存，換手機也接得上。' },
-  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」。' },
+  { view: 'train', el: '.ex .ex-actions', title: '動作工具', text: '「說明」看動作要點，「替換」只換這一次的動作（例如器材被佔用），「＋組／－組」調整組數，「移除」今天不做。列表最下面可以「＋ 加入動作」；有兩組以上同類器材時，動作名稱下面可以選今天用哪一個。' },
   { view: 'train', el: '.savebar', title: '完成並保存', text: '練完按這裡，這次訓練就會加入歷史，下次的建議也會跟著更新。' },
-  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「入門全身」（啞鈴＋彈力帶＋徒手）。按「範本」可以換成徒手全身或 SHARK 四日，也可以自己新增；選中的就是訓練頁使用的那份。' },
+  { view: 'program', el: '.prog-bar', title: '課表', text: '新帳號預設是「居家入門」（啞鈴＋彈力帶，深蹲日、弓步日輪流）。按「範本」可以換成「零器材徒手」或「SHARK 四日」，也可以自己新增；選中的就是訓練頁使用的那份。' },
   { view: 'program', el: '.day-card', title: '編輯訓練日', text: '點動作名稱可以換動作，也能調整組數、次數區間、起始重量，或用 ↑↓ 排順序。最下面可以請 AI 幫你產生課表。' },
-  { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數，以及槓鈴、啞鈴、史密斯、Cable、器械、自重各動作的最佳紀錄，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
-  { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材，再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
+  { view: 'board', el: '#boardCats', title: '排行榜', text: '和家人朋友比訓練次數和各動作的最佳紀錄，可以依部位（胸、背、腿…）或依器材分類，冷門動作也能拿第一。暱稱和要不要參加，都可以在「設定」更改。' },
+  { view: 'settings', el: '#equipList', title: '器材', text: '按「＋ 器材」加入你家裡或健身房有的器材（啞鈴、彈力帶、Cable、器械…），再設定重量上限和每次加重的幅度；建議重量會依這些設定計算。' },
   { view: 'stats', el: '#analyticsView .card', title: '統計', text: '每週各部位訓練量（主要肌群算 1 組、次要算 0.5 組）、目前各動作重量，以及體重、體脂等身體數據的趨勢圖。' },
   { view: 'train', title: '準備好了！', text: '開始你的第一次訓練吧。之後想重看，到「設定 → 使用教學」。' },
 ];
@@ -2625,10 +2632,11 @@ function renderProfile() {
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
   { v: '2026.10.02-7', date: '2026-10-02', title: '課表範本與彈力帶', items: [
-    '新帳號的預設課表改成「入門全身」：啞鈴＋彈力帶＋徒手，每週 3 次、A／B 輪流。',
-    '「課表」新增「範本」按鈕：入門全身、徒手全身（不用器材）、SHARK 四日；加入時可順便把需要的器材加到「我的器材」。原本的課表不會被改動。',
+    '新帳號的預設課表改成「居家入門」：啞鈴＋彈力帶＋徒手的全身訓練，每週 3 次，深蹲日、弓步日輪流。',
+    '「課表」新增「範本」按鈕：居家入門、零器材徒手、SHARK 四日；加入時可順便把需要的器材加到「我的器材」。原本的課表不會被改動。',
     '新增彈力帶器材：依阻力由輕到重記錄（可以改成自己彈力帶的顏色），進步建議會提示換下一條。',
-    '新增 22 個動作：彈力帶划船、下拉、面拉、胸推、側平舉、彎舉等 10 個，跪姿／上斜／窄距伏地挺身、徒手弓箭步、單腳臀橋、超人式、捲腹、仰臥抬腿、啞鈴地板臥推等。'] },
+    '新增 22 個動作：彈力帶划船、下拉、面拉、胸推、側平舉、彎舉等 10 個，跪姿／上斜／窄距伏地挺身、徒手弓箭步、單腳臀橋、超人式、捲腹、仰臥抬腿、啞鈴地板臥推等。',
+    '使用教學更新：六個分頁（含排行）、範本、在動作卡片上換器材。'] },
   { v: '2026.10.02-6', date: '2026-10-02', title: '器材使用更簡單', items: [
     '同類器材可以加好幾個（例如家裡的啞鈴、健身房的啞鈴），訓練時直接在動作卡片上選今天用哪一個；課表裡不用再設定器材。',
     '啞鈴、槓鈴不管用哪一組，都記在同一條紀錄；加重幅度和上限照當天用的那組計算。',
