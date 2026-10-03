@@ -93,7 +93,7 @@ textarea.field{height:auto;min-height:70px;padding:9px 10px;resize:vertical}text
 .advice.good .adv-main b{color:var(--good)}.advice.warn .adv-main b{color:var(--warn)}
 .live{font-size:calc(12.5px * var(--fz,1));font-weight:700}.live.good{color:var(--good)}.live.warn{color:var(--warn)}
 .up-btn{justify-self:start;font-size:calc(13px * var(--fz,1))}
-.sets{display:grid;gap:6px;max-width:640px}
+.sets{display:grid;gap:6px}
 .set{display:grid;grid-template-columns:20px minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr) 34px;gap:6px;align-items:center}
 .set.k-bw{grid-template-columns:20px minmax(0,1.05fr) minmax(0,1.2fr) minmax(0,.85fr) minmax(0,.7fr) 34px}
 .set.k-cardio{grid-template-columns:20px repeat(4,minmax(0,1fr)) 34px}
@@ -502,7 +502,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
       <div class="card pad"><div class="card-h"><h3>器材</h3><button id="equipAdd" class="btn btn-light btn-sm">＋ 器材</button></div><p class="muted sm">加入你家裡或健身房有的器材，動作庫和 AI 課表只會用這些器材（自重動作不用加）。前面的勾勾＝目前可用。</p><p class="muted sm">同類器材可以加好幾個（例如家裡的啞鈴和健身房的啞鈴），訓練時在動作卡片上選今天用哪個。啞鈴、槓鈴不管用哪一組都記在同一條紀錄；Cable 和器械每台重量不同，換一台就分開記。</p><div id="equipList" class="eq-list"></div></div>
       <div class="card pad"><div class="card-h"><h3>動作庫</h3><button id="customAdd" class="btn btn-light btn-sm">＋ 自訂動作</button></div>
         <p class="muted sm">查看每個動作的訓練部位、做法與示範影片。</p>
-        <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="">全部器材</option></select></div>
+        <div class="lib-filter"><input id="libSearch" class="field" placeholder="搜尋（中文或英文）"><select id="libMuscle" class="field"><option value="">全部部位</option></select><select id="libEq" class="field"><option value="owned">我有的器材</option><option value="all">全部器材</option></select></div>
         <div id="libList" class="pick-list tall"></div></div>
       <div class="card pad"><div class="card-h"><h3>更新紀錄</h3><span id="appVersion" class="muted sm"></span></div><div id="changeLog"></div></div>
       <div class="card pad"><div class="card-h"><h3>使用教學</h3></div><div class="row-inline wrap"><button id="tourStart" class="btn btn-light btn-sm">重看教學</button><button id="tplAgain" class="btn btn-light btn-sm">重新選課表</button><button id="homeGuide" class="btn btn-light btn-sm">加入主畫面</button></div><p class="muted sm">教學一步步介紹計時器、重量建議、課表與排行，約 1 分鐘。「重新選課表」可以從居家或健身房的範本挑一份；「加入主畫面」教你把網站變成手機上的 App。</p></div>
@@ -2005,11 +2005,11 @@ function renderLibrary() {
   if (!$('#libMuscle').options.length || $('#libMuscle').options.length < 2) $('#libMuscle').insertAdjacentHTML('beforeend', MUSCLE_NAMES.map(n => `<option>${n}</option>`).join('') + '<option value="有氧">有氧</option>');
   // 器材篩選：我有的／全部／指定某一種器材
   const sel = $('#libEq'), cur = sel.value || 'owned', eqs = [...state.equipment.filter(e => e.id !== 'bw' && e.type !== 'none'), ...EQUIP_PRESETS.filter(p => !state.equipment.some(e => e.id === p.id))];
-  sel.innerHTML = `<option value="owned">我有的器材</option><option value="">全部器材</option><option value="eq:bw">自重</option>${eqs.map(e => `<option value="eq:${esc(e.id)}">${esc(e.name)}</option>`).join('')}`;
+  sel.innerHTML = `<option value="owned">我有的器材</option><option value="all">全部器材</option><option value="eq:bw">自重</option>${eqs.map(e => `<option value="eq:${esc(e.id)}">${esc(e.name)}</option>`).join('')}`;
   sel.value = [...sel.options].some(o => o.value === cur) ? cur : 'owned';
   const q = $('#libSearch').value.trim().toLowerCase(), mu = $('#libMuscle').value, f = sel.value;
   const list = Object.values(allExercises()).filter(x => (!q || x.name.toLowerCase().includes(q) || (x.en || '').toLowerCase().includes(q))
-    && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) > 0)) && (f === '' || (f === 'owned' ? owns(x.eq) : x.eq === f.slice(3))));
+    && (!mu || (mu === '有氧' ? kindFor(x) === 'cardio' : (x.muscles?.[mu] || 0) > 0)) && (f === 'all' || (f === 'owned' ? owns(x.eq) : x.eq === f.slice(3))));
   $('#libList').innerHTML = byPart(list).map(([g, xs]) => `<div class="pick-group">${esc(g)}（${xs.length}）</div>` + xs.map(x => `<button class="pick" data-show="${esc(x.id)}"><b>${esc(x.name)}${x.custom ? ' <span class="tag">自訂</span>' : ''}</b><small>${exSub(x)}</small></button>`).join('')).join('') || '<div class="empty sm">找不到動作</div>';
 }
 
@@ -2940,6 +2940,9 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.03-10', date: '2026-10-03', title: '平板版面、動作庫篩選', items: [
+    'iPad 和電腦上，每一組的輸入框會跟著畫面放寬，不再只佔動作卡片的三分之二。',
+    '修正動作庫選不到「全部器材」的問題。'] },
   { v: '2026.10.03-9', date: '2026-10-03', title: '一次一台裝置、趨勢圖看數值', items: [
     '同一份訓練同時只在一台裝置上操作：其他開著的手機、電腦會顯示「這份訓練正在 iPad 上進行」，只能查看，不跑秒也不會誤觸。要換裝置，按「在這台繼續」。',
     '離線很久的裝置送出的舊資料，不會再蓋掉較新的輸入。',
@@ -3047,7 +3050,7 @@ function whatsNew() {
   const brandNew = !state.sessions.length && !state.prefs.tourDone;
   state.prefs.seenVersion = cur; persist();
   if (brandNew) return;
-  const fresh = seen ? CHANGELOG.filter(c => c.v > seen) : CHANGELOG.slice(0, 3);
+  const i = CHANGELOG.findIndex(c => c.v === seen), fresh = i > 0 ? CHANGELOG.slice(0, i) : CHANGELOG.slice(0, 3); // 用順序判斷，不比字串（-10 會被排在 -9 前面）
   openDialog('更新了什麼', logHtml(fresh.slice(0, 3)) + '<p class="muted sm">完整紀錄在「設定 → 更新紀錄」。</p><div class="row-end"><button class="btn btn-primary" id="wnOk">知道了</button></div>');
   $('#wnOk').onclick = closeDialog;
 }
