@@ -1,6 +1,6 @@
 // 讓網頁秒開、沒網路也能用（資料同步由 Firestore 自己處理）
 // 先用手機裡存的版本打開，同時在背景檢查有沒有新版；有新版就存起來並通知頁面，下次打開（或按「更新」）生效
-const CACHE = 'shark-v39';
+const CACHE = 'shark-v40';
 const SHELL = ['./', './index.html', './config.js?v=5', './manifest.webmanifest', './icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => fetch(u, { cache: 'reload' }).then(r => r.ok && c.put(u === './' ? './index.html' : u, r)).catch(() => { })))));
