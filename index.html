@@ -128,7 +128,7 @@ textarea.field{height:auto;min-height:70px;padding:9px 10px;resize:vertical}text
 .tbl th{background:var(--surface2);color:var(--muted);font-size:calc(11.5px * var(--fz,1))}.tbl th:first-child,.tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}.tbl thead th:first-child{background:var(--surface2)}
 .tbl td small{display:block;color:var(--muted);font-size:calc(10.5px * var(--fz,1))}.tbl tfoot td{font-weight:800;border:0}
 .metric-form{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.metric-form label:first-child{grid-column:span 2}.metric-form .btn{grid-column:span 2;align-self:end;height:40px}
-.chart{height:220px;margin-top:8px}.chart canvas{width:100%;height:100%;display:block}
+.chart{height:220px;margin-top:8px}.chart canvas{width:100%;height:100%;display:block;touch-action:pan-y;cursor:crosshair}
 .metric-list{display:grid;gap:4px;margin-top:10px;max-height:260px;overflow:auto}
 .metric-row{display:grid;grid-template-columns:48px 1fr 30px;gap:8px;align-items:center;font-size:calc(12.5px * var(--fz,1));padding:6px 0;border-bottom:1px solid var(--line)}.metric-row span{color:var(--muted)}
 
@@ -233,6 +233,8 @@ a.btn{text-decoration:none;color:inherit}
 .drive-box{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}.drive-box p{margin:8px 0 0}.drive-box a{color:var(--teal)}
 
 /* 使用教學 */
+.lock-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:var(--warn-bg);border:1px solid var(--warn);font-size:calc(14px * var(--fz,1));font-weight:700;line-height:1.5}.lock-bar .btn{flex:none}
+#trainView.locked :is(#mainTimer,#exerciseList,#addExercise,.note-card,.savebar){opacity:.55;pointer-events:none}
 .tour{position:fixed;inset:0;z-index:90}
 .tour-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,9,18,.72);outline:2px solid var(--teal);transition:all .25s;pointer-events:none}
 .tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:top .25s,left .25s}
@@ -405,6 +407,7 @@ html[data-font="l"] .toolbar #daySelect,html[data-font="xl"] .toolbar #daySelect
 
     <section id="trainView" class="view">
       <div class="toolbar"><input id="sessionDate" class="field" type="date" aria-label="日期"><select id="daySelect" class="field" aria-label="訓練日"></select><button id="clearDraft" class="btn btn-light btn-sm">清空</button></div>
+      <div id="lockBar" class="lock-bar" hidden><span id="lockText"></span><button id="takeOver" class="btn btn-primary btn-sm">在這台繼續</button></div>
 
       <section id="mainTimer" class="card timer" aria-label="計時器">
         <div class="timer-top"><div><div id="timerStatus" class="muted sm">已暫停</div><div id="timerClock" class="clock">00:00.0</div></div><div class="timer-total"><span>總時間</span><b id="timerTotal">00:00</b></div></div>
@@ -1298,28 +1301,61 @@ function loadDraft() {
   timerState = draft.timer;
 }
 function saveDraft() {
+  if (lockedBy()) return; // 別台裝置正在用這份訓練：這台不寫入
   draft.touchedAt = Date.now(); // 重新打開時用來找「最近一份還沒保存的訓練」
+  draft.owner = { id: DEVICE.id, name: DEVICE.name }; // 最後操作的裝置＝目前使用裝置
+  draft.rev = (draft.rev || 0) + 1; // 版本號：較舊的版本（例如另一台離線很久才送出）不會蓋掉較新的
   state.drafts[draftKey()] = draft;
   persist();
+}
+// ---------- 目前使用裝置：同一份訓練同時只在一台裝置上操作 ----------
+// 其他裝置會顯示「正在 iPad 上訓練」、不能輸入、計時器不跑；要換裝置按「在這台繼續」
+const DEVICE = (() => {
+  let id = ''; try { id = localStorage.getItem('shark-device') || '' } catch { }
+  if (!id) { id = uid('dv'); try { localStorage.setItem('shark-device', id) } catch { } }
+  const ua = navigator.userAgent, ipad = /iPad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const name = /iPhone/.test(ua) ? 'iPhone' : ipad ? 'iPad' : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Android 手機' : 'Android 平板') : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows 電腦' : '其他裝置';
+  return { id, name };
+})();
+const LOCK_MS = 3 * 3600000; // 超過 3 小時沒動就不再鎖住
+const ownerName = o => !o?.name ? '其他裝置' : o.name !== DEVICE.name ? o.name : o.name === '其他裝置' ? '另一台裝置' : '另一台 ' + o.name;
+function lockedBy(d = draft) {
+  const o = d?.owner;
+  return o && o.id !== DEVICE.id && (d.timer?.active || draftHasData(d)) && Date.now() - (d.touchedAt || 0) < LOCK_MS ? o : null;
+}
+function applyLock() {
+  const o = lockedBy();
+  $('#lockBar').hidden = !o;
+  if (o) $('#lockText').textContent = `這份訓練正在「${ownerName(o)}」上進行，這台只能查看。`;
+  ['#mainTimer', '#exerciseList', '#addExercise', '.note-card', '.savebar', '#clearDraft'].forEach(s => { const el = $(s); if (el) el.inert = !!o });
+  $('#trainView').classList.toggle('locked', !!o);
+}
+function takeOver() {
+  if (!lockedBy()) return;
+  draft.owner = { id: DEVICE.id, name: DEVICE.name };
+  const msg = resumeTimer(true); // 原本那台離開超過 30 分鐘 → 計時停在離開的時間
+  saveDraft(); SYNC.flush(); renderDay();
+  toast(msg || `已改在這台（${DEVICE.name}）繼續`, msg ? 6000 : 2400);
 }
 // ---------- 關掉／重新整理後接續 ----------
 // 離開畫面（關閉、切 App、鎖螢幕）時記下時間；回來時：30 分鐘內 → 計時照常繼續（含離開的時間）；
 // 超過 30 分鐘 → 計時停在離開的那一刻，避免出現好幾個小時的組間休息
 const AWAY_MAX = 30 * 60000;
-function markHidden() { if (draft && timerState?.active) { timerState.hiddenAt = nowMs(); saveDraft(); SYNC.flush() } }
+function markHidden() { if (draft && timerState?.active && !lockedBy()) { timerState.hiddenAt = nowMs(); saveDraft(); SYNC.flush() } }
 function resumeTimer(quiet) {
-  const t = timerState, a = t?.active; if (!t) return '';
+  const t = timerState, a = t?.active; if (!t || lockedBy()) return '';
   const say = m => { if (!quiet) toast(m, 6000); return m };
+  // 只改手機裡的資料、不立刻上傳：剛回到畫面時，別台的更新可能還沒收到，避免用舊資料蓋掉（下次輸入時會一起同步）
   if (!a) { delete t.hiddenAt; return '' }
   const now = nowMs(), away = t.hiddenAt ? now - t.hiddenAt : 0;
   if (t.hiddenAt && away > AWAY_MAX) {
     const end = t.hiddenAt;
     t.segments.push({ id: uid(), type: a.type, start: a.startedAt, end, duration: Math.max(0, end - a.startedAt), exId: a.exId, setIndex: a.setIndex });
-    t.active = null; delete t.hiddenAt; saveDraft(); renderTimer();
+    t.active = null; delete t.hiddenAt; renderTimer();
     return say(`離開超過 ${Math.round(away / 60000)} 分鐘，計時已停在離開的時間；要繼續請按「動作」或「組間休息」`);
   }
-  if (!t.hiddenAt && now - a.startedAt > 3 * 3600000) { t.active = null; saveDraft(); renderTimer(); return say('上次的計時沒有正常結束，已經停止；紀錄都還在') }
-  delete t.hiddenAt; // 回來時只改手機裡的資料，不另外寫入雲端（下次輸入時會一起同步）
+  if (!t.hiddenAt && now - a.startedAt > 3 * 3600000) { t.active = null; renderTimer(); return say('上次的計時沒有正常結束，已經停止；紀錄都還在') }
+  delete t.hiddenAt;
   return '';
 }
 
@@ -1390,7 +1426,7 @@ function renderDay() {
   $('#dayNote').innerHTML = `${f ? esc(f.program.name) : '這份課表還沒有訓練日'} <button class="link" id="switchProg">換課表</button>`;
   $('#sessionNotes').value = draft.notes || '';
   $('#painFlag').checked = !!draft.pain;
-  renderExercises();
+  applyLock(); renderExercises();
 }
 function renderExercises() {
   $('#exerciseList').innerHTML = draft.exercises.map(exCardHtml).join('') || '<div class="empty">今天還沒有動作，按下方「＋ 加入動作」。</div>';
@@ -1413,7 +1449,7 @@ function updateProgress() {
 
 // ---------- 輸入事件（事件委派）----------
 function onSetInput(ev) {
-  const el = ev.target, f = el.dataset.f; if (!f) return;
+  const el = ev.target, f = el.dataset.f; if (!f || lockedBy()) return;
   const card = el.closest('.ex'), row = el.closest('.set'); if (!card || !row) return;
   const i = +card.dataset.i, j = +row.dataset.j, e = draft.exercises[i], x = e.sets[j];
   if (!draft.startedAt) draft.startedAt = Date.now(); // 排行榜次數：第一次輸入 → 保存的時間
@@ -1431,7 +1467,7 @@ function onSetInput(ev) {
   }
 }
 function onCardAction(ev) {
-  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const b = ev.target.closest('[data-act]'); if (!b || lockedBy()) return;
   const card = b.closest('.ex'), i = +card.dataset.i, e = draft.exercises[i], act = b.dataset.act;
   if (act === 'info') { $('.ex-info', card).classList.toggle('hidden'); return }
   if (act === 'addset') { if (e.sets.length >= 10) return; const last = e.sets.at(-1); e.sets.push(!last ? blankSet(entryOfEx(e), advise(entryOfEx(e))) : e.kind === 'cardio' ? { dur: '', level: last.level, dist: '', hr: '', done: false } : { ...last, reps: '', rir: '', done: false }); saveDraft(); rerenderCard(i); return }
@@ -1626,35 +1662,57 @@ function setupSetSelector() {
   $('#timerSet').innerHTML = Array.from({ length: n }, (_, k) => `<option value="${k}">第 ${k + 1} 組</option>`).join('');
   $('#timerSet').value = Math.min(old, n - 1);
 }
+// 計時器畫面：開始／停止／換組時整個重畫；計時中由 tickTimer 每 0.1 秒只更新時鐘、每秒更新總時間和正在做的那一組
+const setText = (el, v) => { if (el && el.textContent !== v) el.textContent = v }; // 內容沒變就不動畫面
+function setTimeText(all, e, j, active) {
+  const mine = all.filter(s => s.exId === e.id && +s.setIndex === j), sum = k => mine.filter(s => s.type === k).reduce((n, s) => n + s.duration, 0);
+  return mine.length ? `動作 ${fmtClock(sum('work'))} · 組間 ${fmtClock(sum('interRest'))}${sum('intraRest') ? ' · 組內 ' + fmtClock(sum('intraRest')) : ''}${active ? ' · 計時中' : ''}` : '';
+}
+function renderClocks(t, cur) {
+  const c = fmtClock(cur, true), tot = fmtClock(t.total);
+  setText($('#timerClock'), c); setText($('#floatClock'), c); setText($('#timerTotal'), tot); setText($('#floatTotal'), tot); setText($('#saveTotal'), tot);
+  setText($('#timeWork'), fmtClock(t.work)); setText($('#timeInter'), fmtClock(t.interRest)); setText($('#timeIntra'), fmtClock(t.intraRest));
+}
 function renderTimer() {
   if (!timerState || !draft) return;
-  const t = totals(), a = timerState.active, cur = a ? nowMs() - a.startedAt : 0, all = segs();
+  const lock = lockedBy(), a = lock ? null : timerState.active; // 別台在用：只顯示已完成的時間，不跑秒
+  const t = totals(lock ? { segments: timerState.segments } : timerState), cur = a ? nowMs() - a.startedAt : 0, all = lock ? timerState.segments : segs();
   const name = id => draft.exercises.find(e => e.id === id)?.name || '';
-  const status = a ? `${TYPE_NAME[a.type]}｜${name(a.exId)} 第 ${a.setIndex + 1} 組` : '已暫停';
-  $('#timerClock').textContent = fmtClock(cur, true); $('#timerTotal').textContent = fmtClock(t.total);
-  $('#timeWork').textContent = fmtClock(t.work); $('#timeInter').textContent = fmtClock(t.interRest); $('#timeIntra').textContent = fmtClock(t.intraRest);
-  $('#timerStatus').textContent = status; $('#floatClock').textContent = fmtClock(cur, true); $('#floatStatus').textContent = status;
-  $('#floatTotal').textContent = fmtClock(t.total); $('#saveTotal').textContent = fmtClock(t.total);
+  const status = lock ? `在「${ownerName(lock)}」上${timerState.active ? '計時中' : '已暫停'}` : a ? `${TYPE_NAME[a.type]}｜${name(a.exId)} 第 ${a.setIndex + 1} 組` : '已暫停';
+  renderClocks(t, cur); setText($('#timerStatus'), status); setText($('#floatStatus'), status);
+  if (lock) { setText($('#timerClock'), '—'); setText($('#floatClock'), '—') }
   const tgtEx = a ? a.exId : $('#timerExercise').value, tgtSet = a ? a.setIndex : +$('#timerSet').value || 0;
   $$('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === a?.type));
   $$('.ex').forEach(card => {
     const e = draft.exercises[+card.dataset.i]; if (!e) return;
     const on = a?.exId === e.id, work = all.filter(s => s.exId === e.id && s.type === 'work').reduce((n, s) => n + s.duration, 0);
     card.classList.toggle('timing', on);
-    const live = $('.ex-time', card); $('span', live).textContent = on ? TYPE_NAME[a.type] : '累積'; $('strong', live).textContent = fmtClock(on ? cur : work);
+    const live = $('.ex-time', card); setText($('span', live), on ? TYPE_NAME[a.type] : '累積'); setText($('strong', live), fmtClock(on ? cur : work));
     $$('.set-time', card).forEach(el => {
-      const j = +el.dataset.j, mine = all.filter(s => s.exId === e.id && +s.setIndex === j), sum = k => mine.filter(s => s.type === k).reduce((n, s) => n + s.duration, 0);
-      const active = on && a.setIndex === j, row = el.closest('.set');
+      const j = +el.dataset.j, active = on && a.setIndex === j, row = el.closest('.set');
       row.classList.toggle('timing', active);
       row.classList.toggle('cur', !a && e.id === tgtEx && j === tgtSet); // 暫停時：下一個要做的組
-      el.textContent = mine.length ? `動作 ${fmtClock(sum('work'))} · 組間 ${fmtClock(sum('interRest'))}${sum('intraRest') ? ' · 組內 ' + fmtClock(sum('intraRest')) : ''}${active ? ' · 計時中' : ''}` : '';
+      setText(el, setTimeText(all, e, j, active));
     });
   });
   updateFloating();
 }
+let tickSec = -1;
+function tickTimer() {
+  const a = timerState?.active; if (!a || !draft || view !== 'train' || document.hidden || lockedBy()) return; // 不在訓練頁、畫面關掉、別台在用時不做事
+  const now = nowMs(), cur = now - a.startedAt, c = fmtClock(cur, true);
+  setText($('#timerClock'), c); setText($('#floatClock'), c);
+  const sec = Math.floor(now / 1000); if (sec === tickSec) return; tickSec = sec;
+  const all = segs(); renderClocks(totals(), cur);
+  $$('.ex.timing').forEach(card => {
+    const e = draft.exercises[+card.dataset.i]; if (!e) return;
+    setText($('.ex-time strong', card), fmtClock(cur));
+    setText($(`.set-time[data-j="${a.setIndex}"]`, card), setTimeText(all, e, a.setIndex, true));
+  });
+}
 function updateFloating() {
   const r = $('#mainTimer').getBoundingClientRect(), train = !$('#trainView').classList.contains('hidden');
-  $('#floatTimer').classList.toggle('show', train && r.bottom < 0 && draft?.exercises.length > 0);
+  $('#floatTimer').classList.toggle('show', train && r.bottom < 0 && draft?.exercises.length > 0 && !lockedBy());
 }
 
 // ---------- 保存 ----------
@@ -1771,15 +1829,19 @@ function renderMetricList() {
   const rows = state.bodyMetrics.slice().sort((a, b) => b.date.localeCompare(a.date));
   $('#metricList').innerHTML = rows.length ? rows.map(r => `<div class="metric-row"><b>${r.date.slice(5).replace('-', '/')}</b><span>${Object.entries(METRICS).filter(([k]) => r[k] != null).map(([k, [l, u]]) => `${l} ${r[k]}${u}`).join(' · ')}</span><button class="icon-btn" data-del-metric="${esc(r.id)}" aria-label="刪除">✕</button></div>`).join('') : '<div class="empty">尚無數據</div>';
 }
+// 趨勢圖：點一下（或手指左右滑）顯示那一天的數值；滑鼠移上去也會顯示
+const CHART = { pts: [], sel: -1, sig: '' };
 function renderChart() {
   const cv = $('#metricChart'); if (!cv || !cv.offsetParent) return;
   const key = $('#chartMetric').value, range = $('#chartRange').value;
+  if (CHART.sig !== key + range) { CHART.sig = key + range; CHART.sel = -1 }
   let rows = state.bodyMetrics.filter(r => r[key] != null).sort((a, b) => a.date.localeCompare(b.date));
   if (range !== 'all') { const cut = new Date(); cut.setDate(cut.getDate() - Number(range)); rows = rows.filter(r => new Date(r.date + 'T00:00:00') >= cut) }
   const rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, w = rect.width, h = rect.height;
   cv.width = w * dpr; cv.height = h * dpr; const c = cv.getContext('2d'); c.scale(dpr, dpr); c.clearRect(0, 0, w, h);
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   c.font = '12px system-ui'; c.fillStyle = css('--muted');
+  CHART.pts = [];
   if (!rows.length) { c.textAlign = 'center'; c.fillText('這段期間沒有資料', w / 2, h / 2); return }
   const pad = { l: 40, r: 22, t: 12, b: 26 }, vals = rows.map(r => +r[key]); let lo = Math.min(...vals), hi = Math.max(...vals);
   if (lo === hi) { lo -= 1; hi += 1 } else { const g = (hi - lo) * .15; lo -= g; hi += g }
@@ -1790,23 +1852,44 @@ function renderChart() {
   c.fillStyle = css('--muted'); c.textAlign = 'center';
   const step = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor(w / 70))));
   rows.forEach((r, i) => { const lastI = i === rows.length - 1; if ((i % step === 0 && rows.length - 1 - i >= step / 2) || lastI) { c.textAlign = lastI && rows.length > 1 ? 'right' : i === 0 && rows.length > 1 ? 'left' : 'center'; c.fillText(r.date.slice(5).replace('-', '/'), lastI && rows.length > 1 ? w - 2 : X(i), h - 8) } });
+  CHART.pts = rows.map((r, i) => ({ x: X(i), y: Y(+r[key]), v: +r[key], d: r.date }));
+  const p = CHART.pts[CHART.sel]; if (!p) return;
+  const [, unit] = METRICS[key] || ['', ''], label = `${p.d.slice(5).replace('-', '/')}　${fmtVal(p.v)}${unit === '級' ? ' 級' : unit}`;
+  c.strokeStyle = css('--muted'); c.lineWidth = 1; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(p.x, pad.t); c.lineTo(p.x, h - pad.b); c.stroke(); c.setLineDash([]);
+  c.fillStyle = css('--surface'); c.strokeStyle = css('--teal'); c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, 6, 0, 7); c.fill(); c.stroke();
+  c.font = 'bold 13px system-ui'; const tw = c.measureText(label).width + 16, th = 26;
+  const bx = Math.min(Math.max(2, p.x - tw / 2), w - tw - 2), by = p.y - th - 12 >= 0 ? p.y - th - 12 : p.y + 12;
+  c.fillStyle = css('--ink'); c.beginPath(); c.roundRect ? c.roundRect(bx, by, tw, th, 8) : c.rect(bx, by, tw, th); c.fill();
+  c.fillStyle = css('--surface'); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, bx + tw / 2, by + th / 2); c.textBaseline = 'alphabetic';
+}
+
+const fmtVal = v => String(+(+v).toFixed(2));
+function chartPick(ev) {
+  if (!CHART.pts.length) return;
+  const r = ev.currentTarget.getBoundingClientRect(), x = ev.clientX - r.left;
+  let best = 0; CHART.pts.forEach((p, i) => { if (Math.abs(p.x - x) < Math.abs(CHART.pts[best].x - x)) best = i });
+  if (best !== CHART.sel) { CHART.sel = best; renderChart() }
 }
 
 // ---------- 歷史 ----------
+let histLimit = 30; // 一次只畫最近 30 筆，紀錄多時切到「歷史」也很快
 function renderHistory() {
   const list = $('#historyList'), ss = state.sessions.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   if (!ss.length) { list.innerHTML = '<div class="empty">還沒有紀錄。完成第一次訓練後會出現在這裡。</div>'; return }
-  list.innerHTML = ss.map(raw => {
+  const rest = ss.length - histLimit;
+  list.innerHTML = ss.slice(0, histLimit).map(raw => {
     const s = sessionForAnalysis(raw), dur = s.summary?.duration;
     const exs = (s.exercises || []).map(e => `<div class="h-ex"><b>${esc(e.name || exName(e.id))}</b><span>${(e.sets || []).map((x, i) => x.done && (hasReps(x) || x.dur) ? `<i>${i + 1}. ${esc(setLabel(e, x))}${e.kind === 'cardio' ? '' : ' × ' + x.reps}${x.rir !== '' && x.rir != null ? ` <em>餘力 ${x.rir}</em>` : ''}</i>` : '').join('')}${(e.sets || []).some(x => !x.done) ? `<i class="muted">${(e.sets || []).filter(x => !x.done).length} 組未完成</i>` : ''}</span></div>`).join('');
     return `<article class="card h-card" data-sid="${esc(raw.id)}"><button class="h-main" data-act="toggle"><div><b>${esc(s.date)}</b><small>${esc(dayText(s))}</small></div><div class="h-sum">${s.summary?.done || 0}/${s.summary?.total || 0} 組${dur ? ' · ' + fmtClock(dur) : ''}${s.pain ? ' · <span class="warn">不適</span>' : ''}${s._legacy ? ' · <span class="warn">待校正</span>' : ''}</div></button>
       <div class="h-detail hidden">${s._legacy ? '<p class="note warn">這筆是舊版的覆寫紀錄，統計已按原定組數計算；可按「編輯」校正。</p>' : ''}${exs}${s.notes ? `<p class="muted sm">備註：${esc(s.notes)}</p>` : ''}
       <div class="row-end"><button class="btn btn-light btn-sm" data-act="edit">編輯</button><button class="btn btn-danger btn-sm" data-act="del">刪除</button></div><div class="h-edit"></div></div></article>`;
-  }).join('');
+  }).join('') + (rest > 0 ? `<button class="btn btn-light wide" data-act="more">顯示更早的紀錄（還有 ${rest} 筆）</button>` : '');
 }
 function onHistoryClick(ev) {
   const b = ev.target.closest('[data-act]'); if (!b) return;
-  const card = b.closest('.h-card'), id = card.dataset.sid, act = b.dataset.act;
+  if (b.dataset.act === 'more') { histLimit += 50; return renderHistory() }
+  const card = b.closest('.h-card'); if (!card) return;
+  const id = card.dataset.sid, act = b.dataset.act;
   if (act === 'toggle') return $('.h-detail', card).classList.toggle('hidden');
   if (act === 'del') { if (!confirm('刪除這次紀錄？')) return; state.sessions = state.sessions.filter(s => s.id !== id); invalidate(); persist('已刪除'); renderHistory(); renderStats(); return }
   if (act === 'edit') { const box = $('.h-edit', card); box.innerHTML = box.innerHTML ? '' : editPanel(id); return }
@@ -2857,6 +2940,14 @@ function renderProfile() {
 // ===== 06.9 · 更新紀錄（打包在網頁裡，不用讀雲端、不耗流量）=====
 // 之後每次改版：在最上面加一筆；v 用「日期-序號」，越新越大
 const CHANGELOG = [
+  { v: '2026.10.03-9', date: '2026-10-03', title: '一次一台裝置、趨勢圖看數值', items: [
+    '同一份訓練同時只在一台裝置上操作：其他開著的手機、電腦會顯示「這份訓練正在 iPad 上進行」，只能查看，不跑秒也不會誤觸。要換裝置，按「在這台繼續」。',
+    '離線很久的裝置送出的舊資料，不會再蓋掉較新的輸入。',
+    '統計的趨勢圖：點一下（或手指左右滑）就會顯示那一天的數值；電腦把滑鼠移上去也可以。'] },
+  { v: '2026.10.03-8', date: '2026-10-03', title: '更省電、更省流量', items: [
+    '計時中只更新會變動的數字，比較省電；切到其他分頁時，計時器畫面暫停更新（時間照算，回來馬上跟上）。',
+    '「歷史」先顯示最近 30 筆，紀錄很多時切換也很快；按最下面的按鈕可以看更早的。',
+    '同步改成停止輸入 1.5 秒後才上傳（一直輸入也最晚 5 秒傳一次），一次訓練的雲端寫入約少一半。'] },
   { v: '2026.10.03-7', date: '2026-10-03', title: 'Cable 滑輪比與合併出線', items: [
     '「設定 → 器材」的 Cable 可以設定滑輪比（1:1、2:1、4:1）：2:1 的機器，手上拉的是配重的一半，顯示的重量和排行榜都照手上實際的重量算。',
     '雙出線可以勾「可合併出線」：訓練時在動作卡片上選「（合併出線）」，比例變成 1:1，紀錄和加重建議分開記。兩手各拉一條的動作（例如 Cable Fly）不會出現這個選項。',
@@ -3041,7 +3132,7 @@ function switchView(v) {
   updateFloating();
 }
 function renderView() {
-  if (view === 'train') { if (programDirty || !timerState?.active) { initDaySelect(); renderDay() } programDirty = false }
+  if (view === 'train') { if (programDirty || !timerState?.active || state.drafts[draftKey()] !== draft) { initDaySelect(); renderDay() } else renderTimer(); programDirty = false }
   if (view === 'stats') renderAnalytics();
   if (view === 'history') renderHistory();
   if (view === 'program') renderProgram();
@@ -3053,16 +3144,22 @@ function renderAll() { applyTheme(); renderStats(); renderView() }
 
 // 其他裝置同步過來的變更
 function remoteRefresh(flags) {
+  const key = draftKey(), cur = !!flags.drafts?.has?.(key);
+  const takeover = cur && !lockedBy() && !!lockedBy(state.drafts[key]); // 這台原本在用，別台按了「在這台繼續」
   const a = document.activeElement;
-  if (a && a.closest && a.closest('main') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { remoteRefresh.pending = true; return }
+  if (a && a.closest && a.closest('main') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) {
+    if (!takeover) { remoteRefresh.pending = true; return }
+    loadDraft(); a.blur(); // 先換成對方的版本再離開輸入框（這台的輸入不會再寫入）
+  }
   remoteRefresh.pending = false;
   state.sessions.forEach(migrateSession); Object.values(state.drafts).forEach(migrateSession);
   if (!state.programs?.length) state.programs = [defaultProgram(state)];
   state.equipment = mergeEquipment(state.equipment);
   invalidate(); applyTheme(); renderStats(); $('#fastUp').value = state.prefs.fastUp === false ? 'off' : 'on';
-  if (view === 'train') { if (!timerState?.active) { initDaySelect(); renderDay() } }
+  if (view === 'train') { if (!timerState?.active || cur || lockedBy()) { initDaySelect(); renderDay() } }
   else renderView();
-  toast('已同步其他裝置的變更');
+  if (takeover) toast(`已改在「${ownerName(lockedBy(state.drafts[key]))}」上繼續，這台只能查看`, 5000);
+  else if (flags.meta || flags.sessions || flags.metrics) toast('已同步其他裝置的變更'); // 訓練中的輸入安靜同步，不跳提示
 }
 
 // ---------- 綁定 ----------
@@ -3103,10 +3200,11 @@ $('#timerExercise').onchange = () => { setupSetSelector(); retarget(); renderTim
 $('#timerSet').onchange = () => { retarget(); renderTimer() };
 window.addEventListener('scroll', updateFloating, { passive: true });
 window.addEventListener('resize', () => { updateFloating(); if (view === 'stats') renderChart() });
-setInterval(() => { if (timerState?.active) renderTimer() }, 100);
+setInterval(tickTimer, 100);
 
 $('#volumeWeek').onchange = renderVolume; $('#weeklyRange').onchange = renderWeekly;
 $('#saveMetric').onclick = saveMetric; $('#chartMetric').onchange = renderChart; $('#chartRange').onchange = renderChart;
+{ const cv = $('#metricChart'); cv.addEventListener('pointerdown', chartPick); cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) chartPick(e) }); cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && CHART.sel >= 0) { CHART.sel = -1; renderChart() } }) }
 $('#metricList').onclick = e => { const b = e.target.closest('[data-del-metric]'); if (!b || !confirm('刪除這筆數據？')) return; state.bodyMetrics = state.bodyMetrics.filter(x => x.id !== b.dataset.delMetric); persist('已刪除'); renderMetricList(); renderChart() };
 $('#historyList').onclick = onHistoryClick;
 
@@ -3145,7 +3243,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 initMembers();
 renderAll();
-{ const msg = resumeTimer(!!resumed); if (resumed) setTimeout(() => toast(msg ? '已接續上次還沒保存的訓練。' + msg : '已接續上次還沒保存的訓練：輸入和計時都還在', msg ? 7000 : 4500), 900) }
+{ const lock = resumed && lockedBy(), msg = resumeTimer(!!resumed); if (resumed) setTimeout(() => toast(lock ? `「${ownerName(lock)}」正在進行這份訓練；要換到這台，按「在這台繼續」` : msg ? '已接續上次還沒保存的訓練。' + msg : '已接續上次還沒保存的訓練：輸入和計時都還在', msg || lock ? 7000 : 4500), 900) }
 // 每天第一次開啟：整理資料、提醒備份與舊草稿
 function dailyCheck() {
   const r = maintain(false); backupReminder(); if (!r) return;
@@ -3169,6 +3267,7 @@ function onDayChange() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { resumeTimer(); onDayChange() } });
 window.addEventListener('focus', onDayChange);
 $('#tourStart').onclick = startTour;
+$('#takeOver').onclick = takeOver;
 $('#boardView').addEventListener('click', onBoardClick);
 $('#boardView').addEventListener('change', e => { if (e.target.id === 'boardKeySel') { BOARD.key[BOARD.cat] = e.target.value; renderBoard() } });
 $('#boardRefresh').onclick = () => loadBoard(true);
@@ -3190,7 +3289,14 @@ if (!state.prefs.tourDone && !state.sessions.length) setTimeout(() => state.pref
 
 return {
   get state() { return state },
-  isActiveDraft: k => !!timerState?.active && k === draftKey(),
+  // 收到別台送來的草稿時，要不要保留這台的版本：'reassert'＝對方較舊，保留並重新上傳；'keep'＝這台正在計時，先保留
+  keepLocalDraft(k, remote) {
+    const local = state.drafts[k]; if (!local) return false;
+    const mine = !local.owner || local.owner.id === DEVICE.id, active = mine && k === draftKey() && !!timerState?.active;
+    if (remote && mine && local.owner && (remote.rev || 0) < (local.rev || 0)) return 'reassert';
+    if (!remote) return active && draftHasData(local) ? 'keep' : false;
+    return active && (!remote.owner || remote.owner.id === DEVICE.id) ? 'keep' : false;
+  },
   refresh: remoteRefresh,
   toast,
   welcomeEmpty() { toast('雲端還沒有資料：可到「設定」匯入先前的備份') },
@@ -3357,17 +3463,27 @@ const dayKey = () => `shark-w-${S.uid}-${new Date().toLocaleDateString('sv-SE')}
 function dayWrites() { try { return Number(localStorage.getItem(dayKey())) || 0 } catch { return 0 } }
 function countWrites(n) {
   const now = Date.now(); W.recent.push([now, n]); W.recent = W.recent.filter(([t]) => now - t < 60000);
-  try { localStorage.setItem(dayKey(), dayWrites() + n) } catch { }
+  try {
+    const k = dayKey();
+    if (localStorage.getItem(k) == null) Object.keys(localStorage).forEach(x => { if (x.startsWith('shark-w-') && x !== k) localStorage.removeItem(x) }); // 只留今天的計數
+    localStorage.setItem(k, dayWrites() + n);
+  } catch { }
 }
 function syncDelay() {
   if (dayWrites() > GUARD.perDay) { S.slow = 'day'; return 60000 }
   if (W.recent.reduce((a, [, n]) => a + n, 0) > GUARD.perMinute) { S.slow = 'minute'; return 10000 }
-  S.slow = null; return 600;
+  S.slow = null; return 1500;
 }
-function schedule() { clearTimeout(S.timer); const d = syncDelay(); S.timer = setTimeout(flush, d); if (S.slow) setStatus() }
+// 停止輸入 1.5 秒後上傳；一直輸入也最晚 5 秒上傳一次（放慢時固定 10／60 秒，不會被一直延後）
+function schedule() {
+  const now = Date.now(), d = syncDelay();
+  if (!S.firstPending) S.firstPending = now;
+  const at = Math.min(now + d, S.firstPending + Math.max(d, 5000));
+  clearTimeout(S.timer); S.timer = setTimeout(flush, Math.max(0, at - now)); if (S.slow) setStatus();
+}
 
 function flush() {
-  clearTimeout(S.timer);
+  clearTimeout(S.timer); S.firstPending = 0;
   if (!S.ready || !S.app) return;
   const cur = stateToMap(S.app.state), ops = [];
   for (const [p, j] of cur) if (S.synced.get(p) !== j) ops.push({ p, json: j });
@@ -3403,7 +3519,8 @@ function onDocs(kind, changes, meta) {
     if (c.json === S.synced.get(p) || (c.json == null && !S.synced.has(p))) continue;
     const id = dec(c.id), obj = c.json == null ? null : safeParse(c.json);
     if (c.json != null && obj == null) continue;
-    if (kind === 'drafts' && S.app.isActiveDraft(id)) { if (c.json == null) S.synced.delete(p); else S.synced.set(p, c.json); continue }
+    const keep = kind === 'drafts' && S.app.keepLocalDraft(id, obj);
+    if (keep) { if (c.json == null) S.synced.delete(p); else S.synced.set(p, c.json); if (keep === 'reassert') schedule(); continue }
     if (c.json == null) S.synced.delete(p); else S.synced.set(p, c.json);
     any = true;
     if (kind === 'meta') { if (obj) { const { sessions, drafts, bodyMetrics, ...m } = obj; Object.assign(st, m) } flags.meta = true }
@@ -3505,7 +3622,7 @@ async function main() {
   showGate('loading', '載入中…');
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => { });
 
-  if (window.SHARK_TEST_BACKEND) backend = window.SHARK_TEST_BACKEND;
+  if (window.SHARK_TEST_BACKEND) { backend = window.SHARK_TEST_BACKEND; window.__sharkFlush = () => flush() } // 測試用：立刻上傳
   else {
     const cfg = window.SHARK_FIREBASE_CONFIG;
     if (!cfg) { showGate('error', '找不到 config.js：請確認 config.js 和 index.html 放在同一個位置。'); return }
