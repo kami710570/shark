@@ -51,6 +51,23 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]) && myEntryOk()));
     }
 
+    // 在線成員：全部成員放在同一份文件（每人一欄），只有已核准的成員看得到；只放暱稱、最後活動時間、是否訓練中
+    // 一般成員只能改自己那一欄，時間一定是伺服器時間（不能假造）；管理員可以刪任何一欄
+    function myPresenceOk() {
+      let d = request.resource.data;
+      return !(request.auth.uid in d) || (d[request.auth.uid] is map
+        && d[request.auth.uid].keys().hasOnly(['n', 't', 'w'])
+        && d[request.auth.uid].n is string && d[request.auth.uid].n.size() <= 40
+        && d[request.auth.uid].t == request.time && d[request.auth.uid].w is bool);
+    }
+    match /presence/{id} {
+      allow get: if id == 'main' && (isAdmin() || (signedIn() && approved(request.auth.uid)));
+      allow create: if id == 'main' && (isAdmin() || (signedIn() && approved(request.auth.uid)
+        && request.resource.data.keys().hasOnly([request.auth.uid]) && myPresenceOk()));
+      allow update: if id == 'main' && (isAdmin() || (signedIn() && approved(request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([request.auth.uid]) && myPresenceOk()));
+    }
+
     // 使用權限：本人只能送出申請；狀態只有管理員能改
     match /access/{uid} {
       allow get: if isAdmin() || (signedIn() && request.auth.uid == uid);
