@@ -1,18 +1,21 @@
 // 讓網頁秒開、沒網路也能用（資料同步由 Firestore 自己處理）
 // 先用手機裡存的版本打開，同時在背景檢查有沒有新版；有新版就存起來並通知頁面，下次打開（或按「更新」）生效
-const CACHE = 'shark-v113';
+const CACHE = 'shark-v114';
 const SHELL = ['./', './index.html', './config.js?v=5', './manifest.webmanifest', './icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => fetch(u, { cache: 'reload' }).then(r => r.ok && c.put(u === './' ? './index.html' : u, r)).catch(() => { })))));
   self.skipWaiting();
 });
 const LIB = 'shark-lib'; // Firebase SDK 另外放：改版時不用重新下載
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== LIB).map(k => caches.delete(k))))); self.clients.claim(); });
+const IMG = 'shark-img'; // 動作示範圖（ex/）：看過一次就留在手機裡，改版也不用重新下載
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== LIB && k !== IMG).map(k => caches.delete(k))))); self.clients.claim(); });
 const notify = () => self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'shark-update' })));
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin === location.origin) {
+  if (url.origin === location.origin && /\/ex\/[^/]+\.webp$/.test(url.pathname)) {
+    e.respondWith(caches.open(IMG).then(c => c.match(req).then(r => r || fetch(req).then(res => { if (res.ok) c.put(req, res.clone()); return res; }))));
+  } else if (url.origin === location.origin) {
     const page = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname);
     const key = page ? './index.html' : req;
     e.respondWith(caches.open(CACHE).then(async c => {

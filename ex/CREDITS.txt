@@ -1,0 +1,5 @@
+動作示範圖 Exercise illustrations
+來源 Source: Everkinetic open data — https://github.com/everkinetic/data （Greg Priday, http://everkinetic.com）
+授權 License: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+修改 Changes (SHARK Fitness, 2026-11): 起始和用力兩張合成一張、裁切空白、縮小、去背並改色、轉成 WebP。
+These adapted images are also licensed under CC BY-SA 4.0.
